@@ -38,6 +38,22 @@ class QuotationManager {
         
         // Set current year for footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        // Add event listener to convert GST inputs to uppercase while typing
+        const companyGSTInput = document.getElementById('companyGST');
+        if (companyGSTInput) {
+            companyGSTInput.addEventListener('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+        }
+        
+        // Also handle customer GST field if it exists
+        const customerGSTInput = document.getElementById('customerGST');
+        if (customerGSTInput) {
+            customerGSTInput.addEventListener('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+        }
     }
 
     /**
@@ -173,9 +189,12 @@ class QuotationManager {
      * Save company information
      */
     saveCompanyInfo() {
+        // Get company GST and ensure it's uppercase
+        const companyGST = document.getElementById('companyGST').value.toUpperCase();
+        
         this.companyInfo = {
             companyName: document.getElementById('companyName').value,
-            companyGST: document.getElementById('companyGST').value,
+            companyGST: companyGST, // Always store GST in uppercase
             companyEmail: document.getElementById('companyEmail').value,
             companyWebsite: document.getElementById('companyWebsite').value,
             companyAddress: document.getElementById('companyAddress').value,
@@ -238,6 +257,7 @@ class QuotationManager {
      * Save customer information
      */
     saveCustomerInfo() {
+        // Create customer info object
         this.customerInfo = {
             customerName: document.getElementById('customerName').value,
             contactPerson: document.getElementById('contactPerson').value,
@@ -246,6 +266,18 @@ class QuotationManager {
             customerEmail: document.getElementById('customerEmail').value,
             quotationTitle: document.getElementById('quotationTitle').value
         };
+        
+        // If there's a customer GST field, store it in uppercase
+        const customerGSTField = document.getElementById('customerGST');
+        if (customerGSTField) {
+            this.customerInfo.customerGST = customerGSTField.value.toUpperCase();
+        }
+        
+        // If there's a customer website field, store it as is
+        const customerWebsiteField = document.getElementById('customerWebsite');
+        if (customerWebsiteField) {
+            this.customerInfo.customerWebsite = customerWebsiteField.value;
+        }
         
         // Save to localStorage
         utils.saveToLocalStorage('customerInfo', this.customerInfo);
@@ -642,7 +674,8 @@ class QuotationManager {
                     yPos += 5;
                 }
                 if (this.companyInfo.companyGST) {
-                    doc.text(`GST: ${this.companyInfo.companyGST}`, 20, yPos);
+                    // Always display GST in uppercase
+                    doc.text(`GST: ${this.companyInfo.companyGST.toUpperCase()}`, 20, yPos);
                     yPos += 5;
                 }
                 if (this.companyInfo.companyAddress) {
@@ -662,7 +695,11 @@ class QuotationManager {
                     yPos += 5;
                 }
                 if (this.companyInfo.companyWebsite) {
-                    doc.text(`Web: ${this.companyInfo.companyWebsite}`, 20, yPos);
+                    // Display website without requiring URL format
+                    let website = this.companyInfo.companyWebsite;
+                    // Remove protocol prefixes if present for cleaner display
+                    website = website.replace(/^https?:\/\//, '');
+                    doc.text(`Web: ${website}`, 20, yPos);
                     yPos += 5;
                 }
             }
@@ -680,6 +717,11 @@ class QuotationManager {
                     doc.text(`Name: ${this.customerInfo.customerName}`, 105, yPos);
                     yPos += 5;
                 }
+                if (this.customerInfo.customerGST) {
+                    // Ensure GST is displayed in uppercase
+                    doc.text(`GST: ${this.customerInfo.customerGST.toUpperCase()}`, 105, yPos);
+                    yPos += 5;
+                }
                 if (this.customerInfo.customerAddress) {
                     doc.text(`Address: ${this.customerInfo.customerAddress}`, 105, yPos);
                     yPos += 5;
@@ -690,6 +732,13 @@ class QuotationManager {
                 }
                 if (this.customerInfo.customerEmail) {
                     doc.text(`Email: ${this.customerInfo.customerEmail}`, 105, yPos);
+                    yPos += 5;
+                }
+                if (this.customerInfo.customerWebsite) {
+                    // Remove protocol prefixes if present for cleaner display
+                    let website = this.customerInfo.customerWebsite;
+                    website = website.replace(/^https?:\/\//, '');
+                    doc.text(`Web: ${website}`, 105, yPos);
                     yPos += 5;
                 }
             }
