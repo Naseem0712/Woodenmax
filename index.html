@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WoodenMax - Quotation Generator</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>WoodenMax</h1>
+            <div class="company-info-toggle">
+                <button id="companyInfoBtn"><i class="fas fa-building"></i> Company Info</button>
+            </div>
+        </header>
+
+        <div class="company-info-modal" id="companyInfoModal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Company Information</h2>
+                <form id="companyInfoForm">
+                    <div class="form-group">
+                        <label for="companyName">Company Name</label>
+                        <input type="text" id="companyName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="companyGST">GST Number</label>
+                        <input type="text" id="companyGST">
+                    </div>
+                    <div class="form-group">
+                        <label for="companyEmail">Email</label>
+                        <input type="email" id="companyEmail">
+                    </div>
+                    <div class="form-group">
+                        <label for="companyWebsite">Website</label>
+                        <input type="url" id="companyWebsite">
+                    </div>
+                    <div class="form-group">
+                        <label for="companyAddress">Address</label>
+                        <textarea id="companyAddress"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="companyLogo">Logo (URL or upload)</label>
+                        <input type="file" id="companyLogoUpload" accept="image/*">
+                        <input type="text" id="companyLogo" placeholder="Or enter logo URL">
+                        <div id="logoPreview"></div>
+                    </div>
+                    <button type="submit" class="btn">Save</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="customer-info-modal" id="customerInfoModal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Customer Information</h2>
+                <form id="customerInfoForm">
+                    <div class="form-group">
+                        <label for="customerName">Customer Name</label>
+                        <input type="text" id="customerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactPerson">Contact Person</label>
+                        <input type="text" id="contactPerson">
+                    </div>
+                    <div class="form-group">
+                        <label for="customerAddress">Address</label>
+                        <textarea id="customerAddress"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerPhone">Phone</label>
+                        <input type="tel" id="customerPhone">
+                    </div>
+                    <div class="form-group">
+                        <label for="customerEmail">Email</label>
+                        <input type="email" id="customerEmail">
+                    </div>
+                    <div class="form-group">
+                        <label for="quotationTitle">Quotation Title</label>
+                        <input type="text" id="quotationTitle">
+                    </div>
+                    <button type="submit" class="btn">Save</button>
+                </form>
+            </div>
+        </div>
+
+        <main>
+            <div class="product-selection">
+                <button class="product-btn" data-product="grill">
+                    <i class="fas fa-th-large"></i>
+                    <span>Grill</span>
+                </button>
+                <button class="product-btn" data-product="pergola">
+                    <i class="fas fa-archway"></i>
+                    <span>Pergola</span>
+                </button>
+                <button class="product-btn" data-product="window">
+                    <i class="fas fa-window-maximize"></i>
+                    <span>Profile Window</span>
+                </button>
+            </div>
+
+            <div class="product-forms">
+                <!-- Grill Form -->
+                <div class="product-form" id="grillForm" style="display: none;">
+                    <h2>Grill Quotation</h2>
+                    
+                    <div class="material-section">
+                        <h3>Material Details</h3>
+                        <form id="grillMaterialForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="grillMaterialWidth">Width (mm)</label>
+                                    <input type="number" id="grillMaterialWidth" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="grillMaterialDepth">Depth (mm)</label>
+                                    <input type="number" id="grillMaterialDepth" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="grillMaterialThickness">Thickness (mm)</label>
+                                    <input type="number" id="grillMaterialThickness" step="0.01" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="grillMaterialWeight">Weight</label>
+                                    <input type="number" id="grillMaterialWeight" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="grillWeightUnit">Weight Unit</label>
+                                    <select id="grillWeightUnit">
+                                        <option value="kg/m">kg/m</option>
+                                        <option value="kg/ft">kg/ft</option>
+                                        <option value="kg/pcs">kg/pcs</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="grillMaterialRate">Rate per kg (₹)</label>
+                                    <input type="number" id="grillMaterialRate" step="0.01" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="grillMaterialDescription">Description (Optional)</label>
+                                <input type="text" id="grillMaterialDescription" placeholder="MS Square Pipe, etc.">
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="findMaterialBtn" class="btn">Find in Database</button>
+                                <button type="submit" class="btn">Save Material</button>
+                                <button type="button" id="loadGrillMaterialBtn" class="btn">Load Saved</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="requirement-section">
+                        <h3>Requirements</h3>
+                        <form id="grillRequirementForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="grillSize">Size</label>
+                                    <input type="text" id="grillSize" placeholder="100" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="grillUnit">Unit</label>
+                                    <select id="grillUnit">
+                                        <option value="mm">mm</option>
+                                        <option value="cm">cm</option>
+                                        <option value="inch">inch</option>
+                                        <option value="ft">ft</option>
+                                        <option value="m">m</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="grillQuantity">Quantity</label>
+                                    <input type="number" id="grillQuantity" min="1" required>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn">Add Requirement</button>
+                            </div>
+                        </form>
+
+                        <div class="requirements-list">
+                            <h4>Added Requirements</h4>
+                            <div class="table-container">
+                                <table id="grillRequirementsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Size</th>
+                                            <th>Unit</th>
+                                            <th>Quantity</th>
+                                            <th>Weight</th>
+                                            <th>Amount</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Requirements will be added here dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="total-section">
+                                <p>Total Weight: <span id="grillTotalWeight">0</span> kg</p>
+                                <p>Total Amount: ₹<span id="grillTotalAmount">0</span></p>
+                            </div>
+                            <button type="button" id="addGrillToQuote" class="btn btn-primary">Add to Quotation</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pergola Form -->
+                <div class="product-form" id="pergolaForm" style="display: none;">
+                    <h2>Pergola Quotation</h2>
+                    
+                    <div class="material-section">
+                        <h3>Material Details</h3>
+                        <form id="pergolaMaterialForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="pergolaMaterialWidth">Width (mm)</label>
+                                    <input type="number" id="pergolaMaterialWidth" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pergolaMaterialDepth">Depth (mm)</label>
+                                    <input type="number" id="pergolaMaterialDepth" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pergolaMaterialThickness">Wall Thickness (mm)</label>
+                                    <input type="number" id="pergolaMaterialThickness" step="0.01" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="pergolaMaterialWeight">Weight</label>
+                                    <input type="number" id="pergolaMaterialWeight" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pergolaWeightUnit">Weight Unit</label>
+                                    <select id="pergolaWeightUnit">
+                                        <option value="kg/m">kg/m</option>
+                                        <option value="kg/ft">kg/ft</option>
+                                        <option value="kg/pcs">kg/pcs</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pergolaMaterialRate">Rate per kg (₹)</label>
+                                    <input type="number" id="pergolaMaterialRate" step="0.01" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="pergolaMaterialDescription">Description (Optional)</label>
+                                <input type="text" id="pergolaMaterialDescription" placeholder="Iron Pipe, etc.">
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="findPergolaMaterialBtn" class="btn">Find in Database</button>
+                                <button type="submit" class="btn">Save Material</button>
+                                <button type="button" id="loadPergolaMaterialBtn" class="btn">Load Saved</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="requirement-section">
+                        <h3>Requirements</h3>
+                        <form id="pergolaRequirementForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="pergolaItemType">Item Type</label>
+                                    <select id="pergolaItemType">
+                                        <option value="Pillar">Pillar</option>
+                                        <option value="Beam">Beam</option>
+                                        <option value="Rafter">Rafter</option>
+                                        <option value="Custom">Custom</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pergolaSize">Size</label>
+                                    <input type="text" id="pergolaSize" placeholder="100" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pergolaUnit">Unit</label>
+                                    <select id="pergolaUnit">
+                                        <option value="mm">mm</option>
+                                        <option value="cm">cm</option>
+                                        <option value="inch">inch</option>
+                                        <option value="ft">ft</option>
+                                        <option value="m">m</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pergolaQuantity">Quantity</label>
+                                    <input type="number" id="pergolaQuantity" min="1" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="pergolaDescription">Description (Optional)</label>
+                                <input type="text" id="pergolaDescription" placeholder="e.g. 100x100x2mm pipe">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn">Add Requirement</button>
+                            </div>
+                        </form>
+
+                        <div class="requirements-list">
+                            <h4>Added Requirements</h4>
+                            <div class="table-container">
+                                <table id="pergolaRequirementsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>Size</th>
+                                            <th>Unit</th>
+                                            <th>Quantity</th>
+                                            <th>Weight</th>
+                                            <th>Amount</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Requirements will be added here dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="total-section">
+                                <p>Total Weight: <span id="pergolaTotalWeight">0</span> kg</p>
+                                <p>Total Amount: ₹<span id="pergolaTotalAmount">0</span></p>
+                            </div>
+                            <button type="button" id="addPergolaToQuote" class="btn btn-primary">Add to Quotation</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Window Form -->
+                <div class="product-form" id="windowForm" style="display: none;">
+                    <h2>Profile Window Quotation</h2>
+                    
+                    <div class="window-details-section">
+                        <h3>Window Details</h3>
+                        <form id="windowDetailsForm">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="windowType">Window Type</label>
+                                    <select id="windowType">
+                                        <option value="2-Track">2-Track Sliding</option>
+                                        <option value="3-Track">3-Track Sliding</option>
+                                        <option value="Openable">Openable</option>
+                                        <option value="Fixed">Fixed</option>
+                                        <option value="Vent">Ventilator</option>
+                                        <option value="Casement">Casement</option>
+                                        <option value="Custom">Custom</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="windowWidth">Width</label>
+                                    <input type="number" id="windowWidth" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="windowHeight">Height</label>
+                                    <input type="number" id="windowHeight" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="windowUnit">Unit</label>
+                                    <select id="windowUnit">
+                                        <option value="mm">mm</option>
+                                        <option value="cm">cm</option>
+                                        <option value="inch">inch</option>
+                                        <option value="ft">ft</option>
+                                        <option value="m">m</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="windowQuantity">Quantity</label>
+                                    <input type="number" id="windowQuantity" min="1" value="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="windowAreaUnit">Area Unit</label>
+                                    <select id="windowAreaUnit">
+                                        <option value="sqft">sq.ft</option>
+                                        <option value="sqm">sq.m</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="windowRatePerUnit">Rate per Unit (₹)</label>
+                                    <input type="number" id="windowRatePerUnit" step="0.01" required>
+                                </div>
+                            </div>
+                            
+                            <div class="door-configuration">
+                                <h4>Door Configuration</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="glassDoorsCount">Glass Doors</label>
+                                        <input type="number" id="glassDoorsCount" min="0" value="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="meshDoorsCount">Mesh Doors</label>
+                                        <input type="number" id="meshDoorsCount" min="0" value="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="openableDoorsCount">Openable Doors</label>
+                                        <input type="number" id="openableDoorsCount" min="0" value="0">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Options</label>
+                                    <div class="checkbox-group">
+                                        <label>
+                                            <input type="checkbox" id="withMesh"> With Mesh
+                                        </label>
+                                        <label>
+                                            <input type="checkbox" id="topFixed"> Top Fixed
+                                        </label>
+                                        <label>
+                                            <input type="checkbox" id="bottomFixed"> Bottom Fixed
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="hardware-section">
+                                <h4>Hardware</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="hardwareType">Hardware Type</label>
+                                        <select id="hardwareType">
+                                            <option value="Standard">Standard</option>
+                                            <option value="Premium">Premium</option>
+                                            <option value="Luxury">Luxury</option>
+                                            <option value="Custom">Custom</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="hardwareCost">Hardware Cost (₹)</label>
+                                        <input type="number" id="hardwareCost" step="0.01" value="0">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="windowDescription">Description (Optional)</label>
+                                <textarea id="windowDescription" placeholder="Additional details..."></textarea>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn">Add Window</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="requirements-list">
+                        <h4>Added Windows</h4>
+                        <div class="table-container">
+                            <table id="windowRequirementsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Dimensions</th>
+                                        <th>Quantity</th>
+                                        <th>Area</th>
+                                        <th>Configuration</th>
+                                        <th>Hardware</th>
+                                        <th>Amount</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Windows will be added here dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="total-section">
+                            <p>Total Area: <span id="windowTotalArea">0</span></p>
+                            <p>Total Amount: ₹<span id="windowTotalAmount">0</span></p>
+                        </div>
+                        <button type="button" id="addWindowToQuote" class="btn btn-primary">Add to Quotation</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quotation-section">
+                <h2>Quotation Summary</h2>
+                <div class="quotation-controls">
+                    <button id="customerInfoBtn" class="btn"><i class="fas fa-user"></i> Customer Info</button>
+                    <button id="clearQuotationBtn" class="btn"><i class="fas fa-trash"></i> Clear</button>
+                </div>
+                
+                <div class="table-container">
+                    <table id="quotationTable">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Description</th>
+                                <th>Quantity</th>
+                                <th>Unit</th>
+                                <th>Rate</th>
+                                <th>Amount</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Quotation items will be added here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="quotation-summary">
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">₹0</span>
+                    </div>
+                    <div class="summary-row">
+                        <div class="discount-field">
+                            <label for="discountRate">Discount:</label>
+                            <input type="number" id="discountRate" min="0" max="100" value="0" step="0.1">
+                            <span>%</span>
+                        </div>
+                        <span id="discountAmount">₹0</span>
+                    </div>
+                    <div class="summary-row">
+                        <div class="gst-field">
+                            <label for="gstRate">GST:</label>
+                            <input type="number" id="gstRate" min="0" max="28" value="18" step="0.1">
+                            <span>%</span>
+                        </div>
+                        <span id="gstAmount">₹0</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>Total:</span>
+                        <span id="grandTotal">₹0</span>
+                    </div>
+                </div>
+                
+                <div class="export-options">
+                    <div class="form-group">
+                        <label for="additionalNotes">Additional Notes (Optional, max 250 words)</label>
+                        <textarea id="additionalNotes" maxlength="1500" placeholder="Enter any additional information, terms, or conditions..."></textarea>
+                        <div class="word-count"><span id="wordCount">0</span>/250 words</div>
+                    </div>
+                    <div class="cutting-plan-options">
+                        <h3>Cutting Plan Options</h3>
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" id="generateCuttingPlan" checked> Generate Cutting Plan
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockLength">Default Stock Length</label>
+                            <input type="number" id="stockLength" value="6000">
+                            <select id="stockLengthUnit">
+                                <option value="mm">mm</option>
+                                <option value="m">m</option>
+                                <option value="ft">ft</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Multiple Stock Lengths Options -->
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="useMultipleStockLengths"> Use Multiple Stock Lengths
+                            </label>
+                        </div>
+                        
+                        <div id="multipleStockLengthsContainer" style="display: none;">
+                            <div class="stock-lengths-list">
+                                <!-- Stock lengths will be added here -->
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <input type="number" id="newStockLength" placeholder="Length">
+                                    <select id="newStockLengthUnit">
+                                        <option value="mm">mm</option>
+                                        <option value="m">m</option>
+                                        <option value="ft">ft</option>
+                                    </select>
+                                </div>
+                                <button type="button" id="addStockLengthBtn" class="btn">Add Length</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button id="saveQuotationBtn" class="btn"><i class="fas fa-save"></i> Save Quotation</button>
+                        <button id="loadQuotationBtn" class="btn"><i class="fas fa-folder-open"></i> Load Quotation</button>
+                        <button id="exportPdfBtn" class="btn btn-primary"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; <span id="currentYear"></span> WoodenMax | All Rights Reserved</p>
+        </footer>
+    </div>
+
+    <div id="materialDatabaseModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Material Database</h2>
+            <div class="search-container">
+                <input type="text" id="materialSearchInput" placeholder="Search by dimensions...">
+                <button id="materialSearchBtn" class="btn">Search</button>
+            </div>
+            <div class="table-container">
+                <table id="materialDatabaseTable">
+                    <thead>
+                        <tr>
+                            <th>Width (mm)</th>
+                            <th>Depth (mm)</th>
+                            <th>Thickness (mm)</th>
+                            <th>Weight (kg/m)</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Material data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="savingMessage" class="notification">
+        <span>Saving your data...</span>
+    </div>
+
+    <div id="loadingScreen">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <!-- PDF Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        // Make jsPDF available globally
+        window.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Make jsPDF available globally in different ways for maximum compatibility
+                if (window.jspdf && window.jspdf.jsPDF) {
+                    window.jsPDF = window.jspdf.jsPDF;
+                    console.log('jsPDF initialized from jspdf namespace');
+                } else if (typeof jsPDF === 'function') {
+                    window.jsPDF = jsPDF;
+                    console.log('jsPDF already available globally');
+                } else {
+                    console.error('Could not find jsPDF. PDF export may not work.');
+                }
+            } catch (e) {
+                console.error('Error initializing jsPDF:', e);
+            }
+        });
+    </script>
+    
+    <!-- Application Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/cuttingPlan.js"></script>
+    <script src="js/materialDatabase.js"></script>
+    <script src="js/grill.js"></script>
+    <script src="js/pergola.js"></script>
+    <script src="js/window.js"></script>
+    <script src="js/quotation.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html> 
