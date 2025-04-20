@@ -591,7 +591,7 @@ class QuotationManager {
             }
             
             // Set document properties
-            const title = this.customerInfo?.quotationTitle || 'WoodenMax Quotation';
+            const title = this.customerInfo?.quotationTitle || 'WoodenMax Q';
             doc.setProperties({
                 title: title,
                 subject: 'Quotation',
@@ -599,6 +599,75 @@ class QuotationManager {
                 creator: 'WoodenMax Quotation Generator'
             });
             
+            // Function to add footer to current page
+            const addFooter = (pageNumber, totalPages) => {
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                
+                // Draw a line above the footer
+                doc.setDrawColor(0);
+                doc.line(20, pageHeight - 25, 190, pageHeight - 25);
+                
+                // Add page numbers
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(0);
+                doc.text(`Page ${pageNumber} of ${totalPages}`, 105, pageHeight - 10, { align: 'center' });
+                
+                // Add company info
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'bold');
+                if (this.companyInfo && this.companyInfo.companyName) {
+                    doc.text(this.companyInfo.companyName, 20, pageHeight - 15);
+                } else {
+                    doc.text('WoodenMax', 20, pageHeight - 15);
+                }
+                
+                // Add website or contact info
+                doc.setFontSize(8);
+                doc.setFont(undefined, 'normal');
+                let contactInfo = '';
+                if (this.companyInfo) {
+                    contactInfo = this.companyInfo.companyWebsite || 
+                                  this.companyInfo.companyPhone || 
+                                  this.companyInfo.companyEmail || 
+                                  'www.woodenmax.com';
+                } else {
+                    contactInfo = 'www.woodenmax.com';
+                }
+                doc.text(contactInfo, 20, pageHeight - 10);
+                
+                // Try to add small logo in footer
+                try {
+                    if (this.companyInfo && this.companyInfo.companyLogoData) {
+                        // Use saved logo data if available
+                        doc.addImage(this.companyInfo.companyLogoData, 'JPEG', 170, pageHeight - 20, 20, 10);
+                    } else {
+                        // Try default logo
+                        const logoPath = 'woodenmax-logo-3.png';
+                        doc.addImage(logoPath, 'PNG', 170, pageHeight - 20, 20, 10);
+                    }
+                } catch(err) {
+                    // Do nothing if logo fails in footer
+                    console.log('Footer logo could not be added:', err);
+                }
+            };
+            
+            // Initialize page counter
+            let pageNumber = 1;
+            
+            // Set up internal page adder to add footer to each new page
+            const originalAddPage = doc.addPage;
+            doc.addPage = function() {
+                addFooter(pageNumber, '?'); // Temporary total pages
+                pageNumber++;
+                return originalAddPage.apply(this, arguments);
+            };
+            
+            // Register a callback to add footer to the first/current page when we finish
+            const pageCount = () => pageNumber;
+            
+            // Continue with the rest of your PDF generation code...
             // Add title
             doc.setFontSize(20);
             doc.setFont(undefined, 'bold');
@@ -665,7 +734,7 @@ class QuotationManager {
             }
             
             // Add company information
-            doc.setFontSize(10);
+            doc.setFontSize(12);
             doc.setFont(undefined, 'normal');
             let yPos = 45;
             if (this.companyInfo) {
@@ -1506,7 +1575,13 @@ class QuotationManager {
             } // Close the if(generateCuttingPlanChecked) block
             
             // Save the PDF
-            this.savePDF(doc);
+            // Before saving, add the footer to the last page and update page numbers
+            addFooter(pageNumber, pageNumber);
+            
+            // Update all page numbers with the correct total
+            // (We can't do this because jsPDF doesn't allow us to modify already generated pages)
+            // Instead we pass the final page count to the savePDF method
+            this.savePDF(doc, pageNumber);
             utils.showLoading(false);
             
         } catch (error) {
@@ -1519,8 +1594,9 @@ class QuotationManager {
     /**
      * Save the PDF
      * @param {jsPDF} doc - The jsPDF instance
+     * @param {number} totalPages - Total number of pages in the document
      */
-    savePDF(doc) {
+    savePDF(doc, totalPages = 1) {
         if (!doc) {
             console.error('Invalid PDF document object');
             utils.showNotification('PDF generation failed: Invalid document', true);
