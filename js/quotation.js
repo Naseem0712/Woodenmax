@@ -792,7 +792,7 @@ class QuotationManager {
                     // Include complete material details for grills and pergolas
                     dimensions = '';
                     if (item.width && item.height) {
-                        dimensions = `${item.width}mm × ${item.height}mm`;
+                        dimensions = `${Math.round(item.width)}mm × ${Math.round(item.height)}mm`;
                     } else if (item.dimensions) {
                         dimensions = item.dimensions;
                     }
@@ -813,13 +813,13 @@ class QuotationManager {
                             materialInfo += material.dimensions;
                         } else if (material.width && material.depth && material.thickness) {
                             if (materialInfo) materialInfo += ', ';
-                            materialInfo += `${material.width}×${material.depth}×${material.thickness}mm`;
+                            materialInfo += `${Math.round(material.width)}×${Math.round(material.depth)}×${Math.round(material.thickness)}mm`;
                         }
                         
                         // Add material weight
                         if (material.weight) {
                             if (materialInfo) materialInfo += ', ';
-                            materialInfo += `${material.weight} kg/m`;
+                            materialInfo += `${Math.round(material.weight)} kg/m`;
                         }
                         
                         // Add material color if available
@@ -849,7 +849,7 @@ class QuotationManager {
                     // Get unit price for pergola or grill
                     unitPrice = item.rate || (item.amount / item.quantity);
                 } else if (item.width && item.height) {
-                    dimensions = `${item.width}mm × ${item.height}mm`;
+                    dimensions = `${Math.round(item.width)}mm × ${Math.round(item.height)}mm`;
                     unitPrice = item.rate || 0;
                 } else if (item.dimensions) {
                     dimensions = item.dimensions;
@@ -884,11 +884,11 @@ class QuotationManager {
                 doc.text(quantity.toString(), tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, currentY + 5);
                 
                 // Draw unit price with proper formatting
-                const unitPriceText = `₹${utils.formatCurrency(unitPrice)}`;
+                const unitPriceText = `₹${Math.round(unitPrice)}`;
                 doc.text(unitPriceText, tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + 5, currentY + 5);
                 
                 // Fix the amount overflow by aligning right
-                const amountText = `₹${utils.formatCurrency(amount)}`;
+                const amountText = `₹${Math.round(amount)}`;
                 const amountX = tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + columnWidths[4] + columnWidths[5] - 5;
                 doc.text(amountText, amountX, currentY + 5, { align: 'right' });
                 
@@ -910,7 +910,7 @@ class QuotationManager {
             doc.text('Net Item', tableX + columnWidths[0] + 5, currentY + 5);
             
             // Right-align the total amount to prevent overflow
-            const totalAmountText = `₹${utils.formatCurrency(totalAmount)}`;
+            const totalAmountText = `₹${Math.round(totalAmount)}`;
             const totalAmountX = tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + columnWidths[4] + columnWidths[5] - 5;
             doc.text(totalAmountText, totalAmountX, currentY + 5, { align: 'right' });
             doc.setFont('helvetica', 'normal');
@@ -935,13 +935,13 @@ class QuotationManager {
             
             // Add Discount row
             doc.line(summaryTableX, currentY, summaryTableX + summaryTableWidth, currentY);
-            doc.text(`Discount (${this.discountRate}%):`, summaryTableX + 5, currentY + 5);
+            doc.text(`Discount (${Math.round(this.discountRate)}%):`, summaryTableX + 5, currentY + 5);
             doc.text(`-₹${Math.round(this.discount)}`, summaryTableX + summaryTableWidth - 5, currentY + 5, { align: 'right' });
             currentY += 7;
             
             // Add GST row
             doc.line(summaryTableX, currentY, summaryTableX + summaryTableWidth, currentY);
-            doc.text(`GST (${this.gstRate}%):`, summaryTableX + 5, currentY + 5);
+            doc.text(`GST (${Math.round(this.gstRate)}%):`, summaryTableX + 5, currentY + 5);
             doc.text(`₹${Math.round(this.gst)}`, summaryTableX + summaryTableWidth - 5, currentY + 5, { align: 'right' });
             currentY += 7;
             
@@ -959,659 +959,484 @@ class QuotationManager {
             // Increase current position after summary
             currentY += 15;
             
-            // Add additional notes if they exist
-            if (this.additionalNotes && this.additionalNotes.trim().length > 0) {
+            // Add additional notes if any
+            if (this.additionalNotes) {
+                doc.addPage();
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('Additional Notes', 105, 20, { align: 'center' });
+                
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                const notesText = doc.splitTextToSize(this.additionalNotes, 170);
+                doc.text(notesText, 20, 35);
+            }
+            
+            // Only add cutting plan section if the checkbox is checked
+            const generateCuttingPlanChecked = document.getElementById('generateCuttingPlan').checked;
+            
+            if (generateCuttingPlanChecked) {
+                // Add Cutting Plan section
+                doc.addPage();
+                let currentY = 20;
+                
+                doc.setFontSize(16);
+                doc.setFont(undefined, 'bold');
+                doc.text('Cutting Plan', 105, currentY, { align: 'center' });
                 currentY += 15;
                 
-                // Check if we need a new page for notes
-                if (currentY > 250) {
-                    doc.addPage();
-                    currentY = 40;
+                // Check which stock lengths to use
+                const useMultipleStockLengths = document.getElementById('useMultipleStockLengths').checked;
+                let stockLengths = [];
+                
+                if (useMultipleStockLengths && this.stockLengths.length > 0) {
+                    stockLengths = [...this.stockLengths];
+                } else {
+                    // Use default stock length
+                    const stockLength = parseInt(document.getElementById('stockLength').value) || 6000;
+                    const stockUnit = document.getElementById('stockLengthUnit').value;
+                    let stockLengthInMm = stockLength;
+                    
+                    // Convert to mm if necessary
+                    if (stockUnit === 'm') {
+                        stockLengthInMm = stockLength * 1000;
+                    } else if (stockUnit === 'ft') {
+                        stockLengthInMm = stockLength * 304.8;
+                    }
+                    
+                    stockLengths = [Math.round(stockLengthInMm)];
                 }
                 
-                // Notes header
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'bold');
-                doc.text('Additional Notes', 20, currentY);
-                currentY += 10;
+                // Collect all material requirements from the quotation items
+                const allRequirements = [];
                 
-                // Notes content
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                
-                // Wrap notes to fit page width
-                const wrappedNotes = doc.splitTextToSize(this.additionalNotes.trim(), 175);
-                
-                // Draw notes with proper line spacing
-                doc.text(wrappedNotes, 20, currentY);
-                
-                // Adjust current Y position based on the number of lines
-                currentY += wrappedNotes.length * 5 + 10;
-            }
-            
-            // Always start cutting plan on a new page
-            doc.addPage();
-            currentY = 40;
-            
-            // Add cutting plan title
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Cutting Plan', 15, currentY);
-            doc.setFont('helvetica', 'normal');
-            currentY += 10;
-            
-            // Add cutting plan section
-            doc.setFontSize(10);
-            doc.setFont(undefined, 'normal');
-            let stockLengthInfo = '';
-            let stockLengths = [];
-            
-            const useMultipleStockLengths = document.getElementById('useMultipleStockLengths').checked;
-            if (useMultipleStockLengths && this.stockLengths.length > 0) {
-                stockLengthInfo = `Multiple stock lengths: ${this.stockLengths.join('mm, ')}mm`;
-                stockLengths = this.stockLengths;
-            } else {
-                const stockLength = document.getElementById('stockLength').value || '6000';
-                stockLengthInfo = `Standard stock length: ${stockLength}mm`;
-                stockLengths = [parseInt(stockLength, 10)];
-            }
-            
-            doc.text(stockLengthInfo, 20, currentY);
-            currentY += 10;
-            
-            // Extract all required lengths from items
-            const allRequirements = [];
-            this.items.forEach(item => {
-                if (item.type === 'Grill' || item.type === 'Pergola') {
+                // Go through items and collect requirements
+                this.items.forEach(item => {
                     if (item.details && item.details.requirements) {
                         item.details.requirements.forEach(req => {
-                            // Convert size to mm for consistent calculations
+                            // Convert size to mm if not already
                             let sizeInMm = req.size;
-                            if (req.unit === 'm') {
-                                sizeInMm = req.size * 1000;
-                            } else if (req.unit === 'ft') {
-                                sizeInMm = req.size * 304.8;
-                            } else if (req.unit === 'cm') {
-                                sizeInMm = req.size * 10;
-                            } else if (req.unit === 'inch') {
-                                sizeInMm = req.size * 25.4;
+                            if (req.unit !== 'mm') {
+                                sizeInMm = utils.convertLength(req.size, req.unit, 'mm');
                             }
                             
-                            allRequirements.push({
-                                size: req.size,
-                                sizeInMm: Math.round(sizeInMm),
-                                unit: req.unit,
-                                quantity: req.quantity,
-                                type: item.type,
-                                description: req.description || item.description,
-                                itemType: req.itemType
-                            });
+                            for (let i = 0; i < req.quantity; i++) {
+                                allRequirements.push({
+                                    type: item.type,
+                                    description: item.description,
+                                    size: req.size,
+                                    unit: req.unit,
+                                    sizeInMm: Math.round(sizeInMm),
+                                    quantity: 1,
+                                    itemType: req.itemType
+                                });
+                            }
                         });
-                    }
-                }
-            });
-            
-            // Calculate optimal cutting plan
-            const cuttingPlan = this.calculateCuttingPlan(allRequirements, stockLengths);
-            
-            // Header for cutting plan
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text('Material Requirements & Usage', 20, currentY);
-            currentY += 8;
-            
-            // Create a detailed table showing requirements and usage
-            if (allRequirements.length > 0) {
-                // Group materials by dimensions to create separate cutting plans
-                const materialsByDimension = {};
-                
-                // Group requirements by material dimensions
-                allRequirements.forEach(req => {
-                    if (req.type === 'Grill' || req.type === 'Pergola') {
-                        // Find the material used
-                        const item = this.items.find(item => 
-                            item.type === req.type && 
-                            (item.description === req.description || item.name === req.description)
-                        );
-                        
-                        let materialKey = "standard";
-                        if (item && item.details && item.details.material) {
-                            const material = item.details.material;
-                            materialKey = `${material.width || ''}x${material.depth || ''}x${material.thickness || ''}`;
-                            
-                            // If we don't have dimensions, try to use type
-                            if (materialKey === 'xx') {
-                                materialKey = material.type || "standard";
-                            }
-                        }
-                        
-                        if (!materialsByDimension[materialKey]) {
-                            materialsByDimension[materialKey] = [];
-                        }
-                        
-                        materialsByDimension[materialKey].push(req);
                     }
                 });
                 
-                // If we have different material groups, create separate cutting plans
-                if (Object.keys(materialsByDimension).length > 0) {
-                    // Add header for the overall cutting plan
-                    doc.setFontSize(14);
-                    doc.setFont(undefined, 'bold');
-                    doc.text('Cutting Plan by Material Dimensions', 105, currentY, { align: 'center' });
-                    currentY += 15;
+                // Sort requirements by size (largest first) to optimize cutting
+                allRequirements.sort((a, b) => b.sizeInMm - a.sizeInMm);
+                
+                // Calculate optimal cutting plan
+                const cuttingPlan = this.calculateCuttingPlan(allRequirements, stockLengths);
+                
+                // Header for cutting plan
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('Material Requirements & Usage', 20, currentY);
+                currentY += 8;
+                
+                // Create a detailed table showing requirements and usage
+                if (allRequirements.length > 0) {
+                    // Group materials by dimensions to create separate cutting plans
+                    const materialsByDimension = {};
                     
-                    // Track overall summaries
-                    let totalOverallStockPieces = 0;
-                    let totalOverallLengthUsed = 0;
-                    let totalOverallLengthAvailable = 0;
-                    let totalOverallWaste = 0;
-                    let totalOverallWeight = 0;
-                    
-                    // For each material dimension, create a cutting plan
-                    Object.entries(materialsByDimension).forEach(([dimensionKey, dimensionReqs], dimensionIndex) => {
-                        // Start each material type on a new page except the first one
-                        if (dimensionIndex > 0) {
-                            doc.addPage();
-                            currentY = 20;
-                        }
-                        
-                        // Calculate cutting plan for this dimension group
-                        const dimensionCuttingPlan = this.calculateCuttingPlan(dimensionReqs, stockLengths);
-                        
-                        // Add header for this dimension
-                        doc.setFillColor(242, 242, 242);
-                        doc.rect(20, currentY, 170, 10, 'F');
-                        doc.setFontSize(12);
-                        doc.setFont(undefined, 'bold');
-                        doc.setTextColor(0, 0, 0);
-                        doc.text(`Material Section: ${dimensionKey}`, 105, currentY + 7, { align: 'center' });
-                        currentY += 15;
-                        doc.setFont(undefined, 'normal');
-                        
-                        // Stock length information
-                        doc.setFontSize(10);
-                        if (useMultipleStockLengths && stockLengths.length > 0) {
-                            doc.text(`Available Stock Lengths: ${stockLengths.map(l => `${l}mm`).join(', ')}`, 20, currentY);
-                        } else {
-                            doc.text(`Standard Stock Length: ${stockLengths[0]}mm`, 20, currentY);
-                        }
-                        currentY += 10;
-                        
-                        // Material Requirements Table
-                        doc.setFontSize(11);
-                        doc.setFont(undefined, 'bold');
-                        doc.text('Material Requirements:', 20, currentY);
-                        currentY += 8;
-                        
-                        // Table header for this dimension
-                        doc.setFillColor(248, 248, 248);
-                        doc.rect(20, currentY, 170, 7, 'F');
-                        doc.setFontSize(9);
-                        doc.setTextColor(0, 0, 0);
-                        doc.text('Type', 22, currentY + 5);
-                        doc.text('Description', 52, currentY + 5);
-                        doc.text('Size', 102, currentY + 5);
-                        doc.text('Quantity', 132, currentY + 5);
-                        doc.text('Total Length', 162, currentY + 5);
-                        currentY += 10;
-                        doc.setFont(undefined, 'normal');
-                        
-                        // Group similar requirements for better display
-                        const groupedDimensionReqs = dimensionReqs.reduce((groups, req) => {
-                            const key = `${req.type}-${req.sizeInMm}-${req.itemType || ''}`;
-                            if (!groups[key]) {
-                                groups[key] = {
-                                    type: req.type,
-                                    itemType: req.itemType,
-                                    description: req.description,
-                                    size: req.size,
-                                    unit: req.unit,
-                                    sizeInMm: req.sizeInMm,
-                                    quantity: 0
-                                };
-                            }
-                            groups[key].quantity += req.quantity;
-                            return groups;
-                        }, {});
-                        
-                        // Add data rows for this dimension
-                        let totalLengthForDimension = 0;
-                        let totalPiecesForDimension = 0;
-                        
-                        Object.values(groupedDimensionReqs).forEach((req, index) => {
-                            // Calculate total length
-                            const totalLength = req.sizeInMm * req.quantity;
-                            totalLengthForDimension += totalLength;
-                            totalPiecesForDimension += req.quantity;
+                    // Group requirements by material dimensions
+                    allRequirements.forEach(req => {
+                        if (req.type === 'Grill' || req.type === 'Pergola') {
+                            // Find the material used
+                            const item = this.items.find(item => 
+                                item.type === req.type && 
+                                (item.description === req.description || item.name === req.description)
+                            );
                             
-                            // Alternate row background for better readability
-                            if (index % 2 === 0) {
-                                doc.setFillColor(248, 248, 248);
-                                doc.rect(20, currentY - 2, 170, 8, 'F');
-                            }
-                            
-                            // Display data
-                            doc.text(req.type, 22, currentY);
-                            doc.text(req.itemType || req.description || '-', 52, currentY);
-                            doc.text(`${req.size} ${req.unit}`, 102, currentY);
-                            doc.text(req.quantity.toString(), 132, currentY);
-                            doc.text(`${(totalLength/1000).toFixed(2)} m`, 162, currentY);
-                            
-                            currentY += 8;
-                            
-                            // Check if we need a new page
-                            if (currentY > 270) {
-                                doc.addPage();
-                                currentY = 20;
-                                
-                                // Repeat header on new page
-                                doc.setFontSize(11);
-                                doc.setFont(undefined, 'bold');
-                                doc.text(`Material Requirements for ${dimensionKey} (Continued)`, 105, currentY, { align: 'center' });
-                                currentY += 10;
-                                
-                                // Repeat table header
-                                doc.setFillColor(248, 248, 248);
-                                doc.rect(20, currentY, 170, 7, 'F');
-                                doc.setFontSize(9);
-                                doc.setTextColor(0, 0, 0);
-                                doc.text('Type', 22, currentY + 5);
-                                doc.text('Description', 52, currentY + 5);
-                                doc.text('Size', 102, currentY + 5);
-                                doc.text('Quantity', 132, currentY + 5);
-                                doc.text('Total Length', 162, currentY + 5);
-                                currentY += 10;
-                                doc.setFont(undefined, 'normal');
-                            }
-                        });
-                        
-                        // Summary for this dimension
-                        currentY += 5;
-                        
-                        // Calculate stock usage for this dimension
-                        const totalStockPieces = dimensionCuttingPlan.stockPieces.length;
-                        const totalLengthUsed = dimensionCuttingPlan.stockPieces.reduce((sum, piece) => sum + piece.used, 0);
-                        const totalLengthAvailable = dimensionCuttingPlan.stockPieces.reduce((sum, piece) => sum + piece.length, 0);
-                        const totalWaste = totalLengthAvailable - totalLengthUsed;
-                        const wastePercentage = ((totalWaste / totalLengthAvailable) * 100).toFixed(1);
-                        
-                        // Get material weight if available
-                        let materialWeight = 0;
-                        let materialInfo = '';
-                        
-                        // Try to find material weight from items
-                        this.items.forEach(item => {
-                            if ((item.type === 'Grill' || item.type === 'Pergola') && 
-                                item.details && item.details.material) {
+                            let materialKey = "standard";
+                            if (item && item.details && item.details.material) {
                                 const material = item.details.material;
-                                const materialKeyFromItem = `${material.width || ''}x${material.depth || ''}x${material.thickness || ''}`;
+                                materialKey = `${material.width || ''}x${material.depth || ''}x${material.thickness || ''}`;
                                 
-                                if (materialKeyFromItem === dimensionKey && material.weight) {
-                                    materialWeight = material.weight;
-                                    materialInfo = this.getMaterialDetails(material);
+                                // If we don't have dimensions, try to use type
+                                if (materialKey === 'xx') {
+                                    materialKey = material.type || "standard";
                                 }
                             }
-                        });
-                        
-                        // Calculate total weight for this dimension
-                        const totalWeightForDimension = (totalLengthUsed / 1000) * materialWeight;
-                        const wasteWeightForDimension = (totalWaste / 1000) * materialWeight;
-                        
-                        // Update overall totals
-                        totalOverallStockPieces += totalStockPieces;
-                        totalOverallLengthUsed += totalLengthUsed;
-                        totalOverallLengthAvailable += totalLengthAvailable;
-                        totalOverallWaste += totalWaste;
-                        totalOverallWeight += totalWeightForDimension;
-                        
-                        // Draw summary box with shadow effect
-                        doc.setFillColor(250, 250, 250);
-                        doc.rect(20, currentY, 170, 50, 'F');
-                        doc.setDrawColor(200, 200, 200);
-                        doc.rect(20, currentY, 170, 50);
-                        
-                        // Add summary heading
-                        doc.setFontSize(10);
-                        doc.setFont(undefined, 'bold');
-                        doc.text('Material Summary:', 25, currentY + 8);
-                        doc.setFont(undefined, 'normal');
-                        
-                        // Add summary details
-                        doc.setFontSize(9);
-                        currentY += 8;
-                        
-                        doc.text(`• Material: ${dimensionKey} ${materialInfo ? '(' + materialInfo + ')' : ''}`, 25, currentY + 8);
-                        doc.text(`• Total Requirements: ${totalPiecesForDimension} pieces, ${(totalLengthForDimension/1000).toFixed(2)} meters`, 25, currentY + 16);
-                        doc.text(`• Stock Required: ${totalStockPieces} pieces (${(totalLengthAvailable/1000).toFixed(2)} m)`, 25, currentY + 24);
-                        doc.text(`• Material Used: ${(totalLengthUsed/1000).toFixed(2)} meters`, 25, currentY + 32);
-                        doc.text(`• Waste: ${(totalWaste/1000).toFixed(2)} meters (${wastePercentage}% of stock)`, 25, currentY + 40);
-                        
-                        // Add weight information if available
-                        if (materialWeight > 0) {
-                            currentY += 8;
-                            doc.text(`• Total Weight: ${totalWeightForDimension.toFixed(2)} kg (${materialWeight} kg/m)`, 25, currentY + 40);
-                            doc.text(`• Waste Weight: ${wasteWeightForDimension.toFixed(2)} kg`, 25, currentY + 48);
-                        }
-                        
-                        currentY += 60;
-                        
-                        // Add cutting diagrams for this dimension
-                        doc.setFontSize(11);
-                        doc.setFont(undefined, 'bold');
-                        doc.text(`Cutting Diagram for ${dimensionKey}:`, 20, currentY);
-                        doc.setFont(undefined, 'normal');
-                        currentY += 10;
-                        
-                        // Draw cutting diagram for all stock pieces
-                        for (let i = 0; i < dimensionCuttingPlan.stockPieces.length; i++) {
-                            const stock = dimensionCuttingPlan.stockPieces[i];
                             
-                            // Check if we need a new page
-                            if (currentY > 240) {
-                                doc.addPage();
-                                currentY = 20;
-                                doc.setFontSize(11);
-                                doc.setFont(undefined, 'bold');
-                                doc.text(`Cutting Diagram for ${dimensionKey} (Continued):`, 20, currentY);
-                                doc.setFont(undefined, 'normal');
-                                currentY += 10;
+                            if (!materialsByDimension[materialKey]) {
+                                materialsByDimension[materialKey] = [];
                             }
                             
-                            // Stock label
+                            materialsByDimension[materialKey].push(req);
+                        }
+                    });
+                    
+                    // If we have different material groups, create separate cutting plans
+                    if (Object.keys(materialsByDimension).length > 0) {
+                        // Add header for the overall cutting plan
+                        doc.setFontSize(14);
+                        doc.setFont(undefined, 'bold');
+                        doc.text('Cutting Plan by Material Dimensions', 105, currentY, { align: 'center' });
+                        currentY += 15;
+                        
+                        // Track overall summaries
+                        let totalOverallStockPieces = 0;
+                        let totalOverallLengthUsed = 0;
+                        let totalOverallLengthAvailable = 0;
+                        let totalOverallWaste = 0;
+                        let totalOverallWeight = 0;
+                        
+                        // For each material dimension, create a cutting plan
+                        Object.entries(materialsByDimension).forEach(([dimensionKey, dimensionReqs], dimensionIndex) => {
+                            // Start each material type on a new page except the first one
+                            if (dimensionIndex > 0) {
+                                doc.addPage();
+                                currentY = 20;
+                            }
+                            
+                            // Calculate cutting plan for this dimension group
+                            const dimensionCuttingPlan = this.calculateCuttingPlan(dimensionReqs, stockLengths);
+                            
+                            // Add header for this dimension
+                            doc.setFillColor(242, 242, 242);
+                            doc.rect(20, currentY, 170, 10, 'F');
+                            doc.setFontSize(12);
+                            doc.setFont(undefined, 'bold');
+                            doc.setTextColor(0, 0, 0);
+                            doc.text(`Material Section: ${dimensionKey}`, 105, currentY + 7, { align: 'center' });
+                            currentY += 15;
+                            doc.setFont(undefined, 'normal');
+                            
+                            // Stock length information
+                            doc.setFontSize(10);
+                            if (useMultipleStockLengths && stockLengths.length > 0) {
+                                doc.text(`Available Stock Lengths: ${stockLengths.map(l => `${l}mm`).join(', ')}`, 20, currentY);
+                            } else {
+                                doc.text(`Standard Stock Length: ${stockLengths[0]}mm`, 20, currentY);
+                            }
+                            currentY += 10;
+                            
+                            // Material Requirements Table
+                            doc.setFontSize(11);
+                            doc.setFont(undefined, 'bold');
+                            doc.text('Material Requirements:', 20, currentY);
+                            currentY += 8;
+                            
+                            // Table header for this dimension
+                            doc.setFillColor(248, 248, 248);
+                            doc.rect(20, currentY, 170, 7, 'F');
                             doc.setFontSize(9);
-                            doc.text(`Stock #${i + 1}: ${stock.length} mm (${(stock.length/1000).toFixed(2)} m)`, 25, currentY);
+                            doc.setTextColor(0, 0, 0);
+                            doc.text('Type', 22, currentY + 5);
+                            doc.text('Description', 52, currentY + 5);
+                            doc.text('Size', 102, currentY + 5);
+                            doc.text('Quantity', 132, currentY + 5);
+                            doc.text('Total Length', 162, currentY + 5);
+                            currentY += 10;
+                            doc.setFont(undefined, 'normal');
+                            
+                            // Group similar requirements for better display
+                            const groupedDimensionReqs = dimensionReqs.reduce((groups, req) => {
+                                const key = `${req.type}-${req.sizeInMm}-${req.itemType || ''}`;
+                                if (!groups[key]) {
+                                    groups[key] = {
+                                        type: req.type,
+                                        itemType: req.itemType,
+                                        description: req.description,
+                                        size: req.size,
+                                        unit: req.unit,
+                                        sizeInMm: req.sizeInMm,
+                                        quantity: 0
+                                    };
+                                }
+                                groups[key].quantity += req.quantity;
+                                return groups;
+                            }, {});
+                            
+                            // Add data rows for this dimension
+                            let totalLengthForDimension = 0;
+                            let totalPiecesForDimension = 0;
+                            
+                            Object.values(groupedDimensionReqs).forEach((req, index) => {
+                                // Calculate total length
+                                const totalLength = req.sizeInMm * req.quantity;
+                                totalLengthForDimension += totalLength;
+                                totalPiecesForDimension += req.quantity;
+                                
+                                // Alternate row background for better readability
+                                if (index % 2 === 0) {
+                                    doc.setFillColor(248, 248, 248);
+                                    doc.rect(20, currentY - 2, 170, 8, 'F');
+                                }
+                                
+                                // Display data
+                                doc.text(req.type, 22, currentY);
+                                doc.text(req.itemType || req.description || '-', 52, currentY);
+                                doc.text(`${req.size} ${req.unit}`, 102, currentY);
+                                doc.text(req.quantity.toString(), 132, currentY);
+                                doc.text(`${(totalLength/1000).toFixed(2)} m`, 162, currentY);
+                                
+                                currentY += 8;
+                                
+                                // Check if we need a new page
+                                if (currentY > 270) {
+                                    doc.addPage();
+                                    currentY = 20;
+                                    
+                                    // Repeat header on new page
+                                    doc.setFontSize(11);
+                                    doc.setFont(undefined, 'bold');
+                                    doc.text(`Material Requirements for ${dimensionKey} (Continued)`, 105, currentY, { align: 'center' });
+                                    currentY += 10;
+                                    
+                                    // Repeat table header
+                                    doc.setFillColor(248, 248, 248);
+                                    doc.rect(20, currentY, 170, 7, 'F');
+                                    doc.setFontSize(9);
+                                    doc.setTextColor(0, 0, 0);
+                                    doc.text('Type', 22, currentY + 5);
+                                    doc.text('Description', 52, currentY + 5);
+                                    doc.text('Size', 102, currentY + 5);
+                                    doc.text('Quantity', 132, currentY + 5);
+                                    doc.text('Total Length', 162, currentY + 5);
+                                    currentY += 10;
+                                    doc.setFont(undefined, 'normal');
+                                }
+                            });
+                            
+                            // Summary for this dimension
                             currentY += 5;
                             
-                            // Draw stock bar
-                            const barWidth = 150;
-                            const barHeight = 15;
-                            const barX = 30;
-                            doc.setDrawColor(100, 100, 100);
+                            // Calculate stock usage for this dimension
+                            const totalStockPieces = dimensionCuttingPlan.stockPieces.length;
+                            const totalLengthUsed = dimensionCuttingPlan.stockPieces.reduce((sum, piece) => sum + piece.used, 0);
+                            const totalLengthAvailable = dimensionCuttingPlan.stockPieces.reduce((sum, piece) => sum + piece.length, 0);
+                            const totalWaste = totalLengthAvailable - totalLengthUsed;
+                            const wastePercentage = ((totalWaste / totalLengthAvailable) * 100).toFixed(1);
+                            
+                            // Get material weight if available
+                            let materialWeight = 0;
+                            let materialInfo = '';
+                            
+                            // Try to find material weight from items
+                            this.items.forEach(item => {
+                                if ((item.type === 'Grill' || item.type === 'Pergola') && 
+                                    item.details && item.details.material) {
+                                    const material = item.details.material;
+                                    const materialKeyFromItem = `${material.width || ''}x${material.depth || ''}x${material.thickness || ''}`;
+                                    
+                                    if (materialKeyFromItem === dimensionKey && material.weight) {
+                                        materialWeight = material.weight;
+                                        materialInfo = this.getMaterialDetails(material);
+                                    }
+                                }
+                            });
+                            
+                            // Draw summary box
                             doc.setFillColor(240, 240, 240);
-                            doc.rect(barX, currentY, barWidth, barHeight, 'F');
+                            doc.rect(20, currentY, 170, 40, 'F');
                             
-                            // Calculate scale factor
-                            const scaleFactor = barWidth / stock.length;
+                            // Add summary details
+                            doc.setFontSize(11);
+                            doc.setFont(undefined, 'bold');
+                            doc.text(`Summary for ${dimensionKey} ${materialInfo ? '- ' + materialInfo : ''}`, 105, currentY + 10, { align: 'center' });
                             
-                            // Running position for segment placement
-                            let xOffset = 0;
+                            doc.setFontSize(9);
+                            doc.setFont(undefined, 'normal');
                             
-                            // Draw pieces
-                            stock.cuts.forEach((piece, pieceIndex) => {
-                                const segmentWidth = piece.size * scaleFactor;
+                            // First column
+                            doc.text(`Total Requirements: ${totalPiecesForDimension} pieces`, 25, currentY + 20);
+                            doc.text(`Stock Required: ${totalStockPieces} pieces`, 25, currentY + 27);
+                            
+                            // Second column
+                            doc.text(`Material Used: ${Math.round(totalLengthUsed/1000)} m`, 105, currentY + 20);
+                            doc.text(`Waste: ${Math.round(totalWaste/1000)} m (${Math.round(wastePercentage)}%)`, 105, currentY + 27);
+                            
+                            // Weight calculation if available
+                            if (materialWeight > 0) {
+                                // Calculate total weight: length in meters × weight per meter
+                                const totalWeightKg = (totalLengthUsed / 1000) * materialWeight;
+                                doc.text(`Weight: ${Math.round(totalWeightKg)} kg`, 25, currentY + 34);
                                 
-                                // Draw segment with different colors for easier distinction
-                                const colors = [
-                                    [52, 152, 219], // Blue
-                                    [46, 204, 113], // Green
-                                    [155, 89, 182], // Purple
-                                    [52, 73, 94],   // Dark Blue
-                                    [22, 160, 133]  // Teal
-                                ];
-                                const colorIndex = pieceIndex % colors.length;
-                                
-                                doc.setFillColor(colors[colorIndex][0], colors[colorIndex][1], colors[colorIndex][2]);
-                                doc.rect(barX + xOffset, currentY, segmentWidth, barHeight, 'F');
-                                
-                                // Calculate and display cutting mark (vertical line)
-                                const cutX = barX + xOffset + segmentWidth;
-                                doc.setDrawColor(255, 0, 0); // Red for cut marks
-                                doc.setLineWidth(0.5);
-                                doc.line(cutX, currentY - 2, cutX, currentY + barHeight + 2);
-                                
-                                // Add measurement text if segment is wide enough
-                                if (segmentWidth > 20) {
-                                    doc.setFontSize(8);
-                                    doc.setTextColor(255); // White text for better visibility
-                                    doc.text(`${piece.size}mm`, barX + xOffset + segmentWidth/2, currentY + barHeight/2 + 3, {
-                                        align: 'center'
-                                    });
+                                // Add to overall weight
+                                totalOverallWeight += totalWeightKg;
+                            }
+                            
+                            currentY += 45;
+                            
+                            // Add cutting diagrams
+                            doc.setFontSize(11);
+                            doc.setFont(undefined, 'bold');
+                            doc.text('Cutting Diagrams:', 20, currentY);
+                            currentY += 10;
+                            
+                            // Draw cutting diagrams for each stock piece
+                            dimensionCuttingPlan.stockPieces.forEach((stockPiece, stockIndex) => {
+                                // Check if we need a new page
+                                if (currentY > 240) {
+                                    doc.addPage();
+                                    currentY = 20;
+                                    
+                                    // Add header on new page
+                                    doc.setFontSize(11);
+                                    doc.setFont(undefined, 'bold');
+                                    doc.text(`Cutting Diagrams for ${dimensionKey} (Continued)`, 105, currentY, { align: 'center' });
+                                    currentY += 15;
                                 }
                                 
-                                xOffset += segmentWidth;
+                                // Stock piece label
+                                doc.setFontSize(9);
+                                doc.setFont(undefined, 'bold');
+                                doc.text(`Stock Piece #${stockIndex + 1}: ${stockPiece.length}mm`, 20, currentY);
+                                doc.setFont(undefined, 'normal');
+                                
+                                // Draw stock piece visualization
+                                const diagramWidth = 170;
+                                const stockHeight = 15;
+                                const diagramX = 20;
+                                const diagramY = currentY + 5;
+                                
+                                // Draw overall stock
+                                doc.setFillColor(240, 240, 240);
+                                doc.rect(diagramX, diagramY, diagramWidth, stockHeight, 'F');
+                                doc.setDrawColor(180, 180, 180);
+                                doc.rect(diagramX, diagramY, diagramWidth, stockHeight);
+                                
+                                // Calculate scale factor
+                                const scaleFactor = diagramWidth / stockPiece.length;
+                                
+                                // Draw cuts
+                                let currentX = 0;
+                                stockPiece.cuts.forEach((cut, cutIndex) => {
+                                    // Calculate width based on scale
+                                    const cutWidth = cut.size * scaleFactor;
+                                    
+                                    // Draw cut piece
+                                    doc.setFillColor(52, 152, 219); // Blue color for cuts
+                                    doc.rect(diagramX + currentX, diagramY, cutWidth, stockHeight, 'F');
+                                    doc.setDrawColor(0, 0, 0);
+                                    doc.rect(diagramX + currentX, diagramY, cutWidth, stockHeight);
+                                    
+                                    // Add cut label
+                                    doc.setFontSize(7);
+                                    if (cutWidth > 20) { // Only add label if there's enough space
+                                        doc.text(`${cut.size}mm`, diagramX + currentX + cutWidth/2, diagramY + stockHeight/2 + 2, { align: 'center' });
+                                    }
+                                    
+                                    // Add cut spacing (blade width 5mm)
+                                    currentX += cutWidth + (5 * scaleFactor);
+                                });
+                                
+                                // Mark waste
+                                if (stockPiece.waste > 10) { // Only show waste if it's significant
+                                    const wasteWidth = stockPiece.waste * scaleFactor;
+                                    
+                                    // Draw waste area with diagonal pattern
+                                    doc.setFillColor(255, 255, 255); // White
+                                    doc.rect(diagramX + currentX, diagramY, wasteWidth, stockHeight, 'F');
+                                    doc.setDrawColor(180, 180, 180);
+                                    doc.rect(diagramX + currentX, diagramY, wasteWidth, stockHeight);
+                                    
+                                    // Add waste label
+                                    if (wasteWidth > 20) { // Only add label if there's enough space
+                                        doc.setFontSize(7);
+                                        doc.text(`Waste: ${stockPiece.waste}mm`, diagramX + currentX + wasteWidth/2, diagramY + stockHeight/2 + 2, { align: 'center' });
+                                    }
+                                }
+                                
+                                // Draw compact information to the right
+                                doc.setFontSize(8);
+                                doc.text(`Used: ${stockPiece.used}mm (${Math.round((stockPiece.used/stockPiece.length)*100)}%)`, diagramX, diagramY + stockHeight + 7);
+                                doc.text(`Waste: ${stockPiece.waste}mm (${Math.round((stockPiece.waste/stockPiece.length)*100)}%)`, diagramX + 85, diagramY + stockHeight + 7);
+                                
+                                // Get final cuts info
+                                const pieceCount = stockPiece.cuts.length;
+                                
+                                // Add cut info
+                                let cutInfo = stockPiece.cuts.reduce((info, cut, i) => {
+                                    info += `${cut.size}mm`;
+                                    if (i < pieceCount - 1) info += ' + ';
+                                    return info;
+                                }, 'Cuts: ');
+                                
+                                // Add cuts info below the diagram
+                                if (cutInfo.length > 80) {
+                                    // Split into multiple lines if too long
+                                    const cutLines = doc.splitTextToSize(cutInfo, 170);
+                                    cutLines.forEach((line, lineIndex) => {
+                                        doc.text(line, diagramX, diagramY + stockHeight + 14 + (lineIndex * 5));
+                                    });
+                                    
+                                    // Adjust current Y based on number of lines
+                                    currentY += (cutLines.length * 5) + stockHeight + 20;
+                                } else {
+                                    doc.text(cutInfo, diagramX, diagramY + stockHeight + 14);
+                                    currentY += stockHeight + 20;
+                                }
                             });
                             
-                            // Draw waste segment if any
-                            if (stock.waste > 0) {
-                                const wasteWidth = stock.waste * scaleFactor;
-                                doc.setFillColor(231, 76, 60); // Red for waste
-                                doc.rect(barX + xOffset, currentY, wasteWidth, barHeight, 'F');
-                                
-                                // Add waste text if wide enough
-                                if (wasteWidth > 15) {
-                                    doc.setFontSize(8);
-                                    doc.setTextColor(255); // White text
-                                    doc.text(`Waste\n${stock.waste}mm`, barX + xOffset + wasteWidth/2, currentY + barHeight/2, {
-                                        align: 'center'
-                                    });
-                                }
-                            }
-                            
-                            // Reset text color to black
-                            doc.setTextColor(0, 0, 0);
-                            
-                            // Add piece details below the diagram
-                            currentY += barHeight + 5;
-                            doc.setFontSize(8);
-                            
-                            // Display cut information in a more compact format
-                            let detailsText = '';
-                            stock.cuts.forEach((piece, pieceIndex) => {
-                                if (pieceIndex % 3 === 0 && pieceIndex > 0) {
-                                    detailsText += '\n';
-                                }
-                                detailsText += `• Cut #${pieceIndex + 1}: ${piece.size}mm  `;
-                            });
-                            
-                            if (stock.waste > 0) {
-                                detailsText += `• Waste: ${stock.waste}mm (${((stock.waste / stock.length) * 100).toFixed(1)}%)`;
-                            }
-                            
-                            const wrappedDetails = doc.splitTextToSize(detailsText, 160);
-                            doc.text(wrappedDetails, 30, currentY);
-                            
-                            currentY += wrappedDetails.length * 4 + 8;
-                        }
-                        
-                    });
-                    
-                    // Add complete summary page at the end
-                    doc.addPage();
-                    currentY = 20;
-                    
-                    // Overall summary heading
-                    doc.setFontSize(14);
-                    doc.setFont(undefined, 'bold');
-                    doc.text('Complete Cutting Plan Summary', 105, currentY, { align: 'center' });
-                    currentY += 15;
-                    
-                    // Overall statistics
-                    const overallWastePercentage = ((totalOverallWaste / totalOverallLengthAvailable) * 100).toFixed(1);
-                    
-                    // Draw summary table
-                    doc.setFillColor(248, 248, 248);
-                    doc.rect(20, currentY, 170, 10, 'F');
-                    doc.setFontSize(11);
-                    doc.text('Overall Material Requirements', 105, currentY + 7, { align: 'center' });
-                    currentY += 15;
-                    
-                    // Create table for material sections
-                    doc.setFillColor(248, 248, 248);
-                    doc.rect(20, currentY, 170, 7, 'F');
-                    doc.setFontSize(9);
-                    doc.text('Material', 22, currentY + 5);
-                    doc.text('Required Pieces', 70, currentY + 5);
-                    doc.text('Stock Required', 110, currentY + 5);
-                    doc.text('Weight (kg)', 160, currentY + 5);
-                    currentY += 10;
-                    
-                    // Add data for each material section
-                    let rowCount = 0;
-                    
-                    Object.entries(materialsByDimension).forEach(([dimensionKey, dimensionReqs]) => {
-                        const dimCuttingPlan = this.calculateCuttingPlan(dimensionReqs, stockLengths);
-                        const totalPieces = dimensionReqs.reduce((sum, req) => sum + req.quantity, 0);
-                        const totalStockPieces = dimCuttingPlan.stockPieces.length;
-                        
-                        // Find material weight
-                        let materialWeight = 0;
-                        this.items.forEach(item => {
-                            if ((item.type === 'Grill' || item.type === 'Pergola') && 
-                                item.details && item.details.material) {
-                                const material = item.details.material;
-                                const materialKeyFromItem = `${material.width || ''}x${material.depth || ''}x${material.thickness || ''}`;
-                                
-                                if (materialKeyFromItem === dimensionKey && material.weight) {
-                                    materialWeight = material.weight;
-                                }
-                            }
+                            // Add to overall totals
+                            totalOverallStockPieces += totalStockPieces;
+                            totalOverallLengthUsed += totalLengthUsed;
+                            totalOverallLengthAvailable += totalLengthAvailable;
+                            totalOverallWaste += totalWaste;
                         });
                         
-                        const totalLengthUsed = dimCuttingPlan.stockPieces.reduce((sum, piece) => sum + piece.used, 0);
-                        const totalWeightForDimension = (totalLengthUsed / 1000) * materialWeight;
-                        
-                        // Alternate row coloring with transparent background
-                        if (rowCount % 2 === 0) {
-                            doc.setFillColor(252, 252, 252);
-                            doc.rect(20, currentY - 2, 170, 8, 'F');
+                        // If we have multiple material dimensions, add overall summary
+                        if (Object.keys(materialsByDimension).length > 1) {
+                            doc.addPage();
+                            currentY = 20;
+                            
+                            doc.setFontSize(14);
+                            doc.setFont(undefined, 'bold');
+                            doc.text('Overall Cutting Plan Summary', 105, currentY, { align: 'center' });
+                            currentY += 15;
+                            
+                            // Draw summary box
+                            doc.setFillColor(240, 240, 240);
+                            doc.rect(20, currentY, 170, 50, 'F');
+                            
+                            // Add summary details
+                            doc.setFontSize(11);
+                            doc.setFont(undefined, 'bold');
+                            doc.text('Summary Across All Materials', 105, currentY + 10, { align: 'center' });
+                            
+                            doc.setFontSize(9);
+                            doc.setFont(undefined, 'normal');
+                            
+                            // First column
+                            doc.text(`Total Materials: ${Object.keys(materialsByDimension).length} types`, 25, currentY + 20);
+                            doc.text(`Total Stock Required: ${totalOverallStockPieces} pieces`, 25, currentY + 27);
+                            
+                            // Second column
+                            doc.text(`Total Material Used: ${Math.round(totalOverallLengthUsed/1000)} m`, 105, currentY + 20);
+                            doc.text(`Total Waste: ${Math.round(totalOverallWaste/1000)} m (${Math.round((totalOverallWaste/totalOverallLengthAvailable)*100)}%)`, 105, currentY + 27);
+                            
+                            // Weight calculation if available
+                            if (totalOverallWeight > 0) {
+                                doc.text(`Total Weight: ${Math.round(totalOverallWeight)} kg`, 25, currentY + 34);
+                            }
                         }
-                        
-                        doc.text(dimensionKey, 22, currentY);
-                        doc.text(totalPieces.toString(), 70, currentY);
-                        doc.text(`${totalStockPieces} (${(dimCuttingPlan.stockPieces.reduce((sum, piece) => sum + piece.length, 0)/1000).toFixed(2)} m)`, 110, currentY);
-                        doc.text(materialWeight > 0 ? totalWeightForDimension.toFixed(2) : '-', 160, currentY);
-                        
-                        currentY += 8;
-                        rowCount++;
-                    });
-                    
-                    // Add total row
-                    doc.setFillColor(245, 245, 245);
-                    doc.rect(20, currentY, 170, 10, 'F');
-                    doc.setDrawColor(200, 200, 200);
-                    doc.rect(20, currentY, 170, 10);
-                    doc.setFont(undefined, 'bold');
-                    doc.text('TOTAL', 22, currentY + 7);
-                    doc.text(`${totalOverallStockPieces} stocks`, 110, currentY + 7);
-                    doc.text(`${totalOverallWeight.toFixed(2)} kg`, 160, currentY + 7);
-                    doc.setFont(undefined, 'normal');
-                    currentY += 15;
-                    
-                    // Add waste summary
-                    doc.setFontSize(10);
-                    doc.setFont(undefined, 'bold');
-                    doc.text('Material Waste Summary:', 20, currentY);
-                    doc.setFont(undefined, 'normal');
-                    currentY += 10;
-                    
-                    // Detail rows
-                    doc.setFontSize(9);
-                    doc.text(`• Total Material Used: ${(totalOverallLengthUsed/1000).toFixed(2)} meters`, 25, currentY);
-                    currentY += 7;
-                    doc.text(`• Total Material Waste: ${(totalOverallWaste/1000).toFixed(2)} meters (${overallWastePercentage}% of stock)`, 25, currentY);
-                    currentY += 7;
-                    doc.text(`• Total Weight: ${totalOverallWeight.toFixed(2)} kg`, 25, currentY);
-                    currentY += 15;
-                    
-                    // Add utilization chart
-                    doc.setFontSize(10);
-                    doc.setFont(undefined, 'bold');
-                    doc.text('Material Utilization:', 20, currentY);
-                    doc.setFont(undefined, 'normal');
-                    currentY += 10;
-                    
-                    // Draw utilization bar
-                    const utilizationBarWidth = 150;
-                    const utilizationBarHeight = 20;
-                    const utilizationBarX = 30;
-                    
-                    // Calculate utilization percentage
-                    const utilizationPercentage = (totalOverallLengthUsed / totalOverallLengthAvailable) * 100;
-                    const usedWidth = (utilizationPercentage / 100) * utilizationBarWidth;
-                    const wasteWidth = utilizationBarWidth - usedWidth;
-                    
-                    // Draw background
-                    doc.setDrawColor(100, 100, 100);
-                    doc.setFillColor(240, 240, 240);
-                    doc.rect(utilizationBarX, currentY, utilizationBarWidth, utilizationBarHeight, 'F');
-                    
-                    // Draw used portion
-                    doc.setFillColor(46, 204, 113); // Green for used
-                    doc.rect(utilizationBarX, currentY, usedWidth, utilizationBarHeight, 'F');
-                    
-                    // Draw waste portion
-                    doc.setFillColor(231, 76, 60); // Red for waste
-                    doc.rect(utilizationBarX + usedWidth, currentY, wasteWidth, utilizationBarHeight, 'F');
-                    
-                    // Add labels
-                    doc.setFontSize(9);
-                    doc.setTextColor(255, 255, 255);
-                    doc.text(`Used: ${utilizationPercentage.toFixed(1)}%`, utilizationBarX + usedWidth/2, currentY + utilizationBarHeight/2 + 3, { align: 'center' });
-                    
-                    if (wasteWidth > 30) {
-                        doc.text(`Waste: ${(100 - utilizationPercentage).toFixed(1)}%`, utilizationBarX + usedWidth + wasteWidth/2, currentY + utilizationBarHeight/2 + 3, { align: 'center' });
                     }
-                    
-                    // Reset text color
-                    doc.setTextColor(0, 0, 0);
                 }
-                // If we only have one material type, continue with existing code
-                else {
-                    // ... existing code ...
-                }
-            } else {
-                doc.text('No cutting requirements found', 20, currentY);
-            }
+            } // Close the if(generateCuttingPlanChecked) block
             
-            // Add footer to all pages with semitransparent background
-            const pageCount = doc.internal.getNumberOfPages();
-            for (let i = 1; i <= pageCount; i++) {
-                doc.setPage(i);
-                
-                // Add page number
-                doc.setFontSize(10);
-                doc.setFont(undefined, 'normal');
-                doc.setTextColor(0);
-                doc.text(`Page ${i} of ${pageCount}`, 105, doc.internal.pageSize.height - 10, { align: 'center' });
-                
-                // Add semi-transparent footer background
-                doc.saveGraphicsState();
-                doc.setFillColor(240, 240, 240);
-                doc.setGState(new doc.GState({opacity: 0.5}));
-                doc.rect(0, doc.internal.pageSize.height - 25, doc.internal.pageSize.width, 25, 'F');
-                doc.restoreGraphicsState();
-                
-                // Add footer with website - after restoring opacity
-                doc.setDrawColor(100, 100, 100);
-                doc.setLineWidth(0.5);
-                doc.line(20, doc.internal.pageSize.height - 20, 190, doc.internal.pageSize.height - 20);
-                
-                doc.setTextColor(50, 50, 50);
-                doc.setFontSize(10);
-                doc.setFont(undefined, 'bold');
-                doc.text('WoodenMax', 20, doc.internal.pageSize.height - 12);
-                
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'normal');
-                doc.text('www.woodenmax.com', 20, doc.internal.pageSize.height - 7);
-                
-                // Try to add small logo in footer
-                try {
-                    if (this.companyInfo && this.companyInfo.companyLogoData) {
-                        doc.addImage(this.companyInfo.companyLogoData, 'JPEG', 170, doc.internal.pageSize.height - 18, 20, 10);
-                    }
-                } catch(err) {
-                    // Do nothing if logo fails in footer
-                }
-            }
-            
-            // Now the PDF is ready, try to save it
+            // Save the PDF
             this.savePDF(doc);
+            utils.showLoading(false);
+            
         } catch (error) {
             console.error('Error generating PDF:', error);
-            utils.showNotification('Error generating PDF. Please try again.', true);
-        } finally {
+            utils.showNotification('Error generating PDF: ' + error.message, true);
             utils.showLoading(false);
         }
     }
@@ -1888,7 +1713,7 @@ class QuotationManager {
         
         if (item.details && item.details.windows && item.details.windows.length > 0) {
             const window = item.details.windows[0];
-            details = `${window.width}mm × ${window.height}mm`;
+            details = `${Math.round(window.width)}mm × ${Math.round(window.height)}mm`;
             
             // Add separate sections for better organization with line breaks
             let mainSpecs = [];
@@ -2007,7 +1832,7 @@ class QuotationManager {
                 details += `\n(${item.details.windows.length} pieces)`;
             }
         } else if (item.width && item.height) {
-            details = `${item.width}mm × ${item.height}mm`;
+            details = `${Math.round(item.width)}mm × ${Math.round(item.height)}mm`;
             
             // Add additional details if available
             if (item.material) {
