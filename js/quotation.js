@@ -702,7 +702,7 @@ class QuotationManager {
             // Add table header
             const tableTop = 80;
             // Use properly sized columns to prevent overlap and fix amount overflow
-            const columnWidths = [15, 55, 40, 15, 25, 25];
+            const columnWidths = [20, 60, 40, 15, 25, 25]; // Increased first column width slightly
             let tableX = 15;
             
             // Draw header with more subtle background for better visibility
@@ -711,13 +711,16 @@ class QuotationManager {
             
             // Add header text with better spacing
             doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold'); // Make headers bold for better visibility
             doc.setTextColor(0, 0, 0); // Ensure header text is solid black
             doc.text('No.', tableX + 5, tableTop + 5);
             doc.text('Description', tableX + columnWidths[0] + 5, tableTop + 5);
             doc.text('Dimensions', tableX + columnWidths[0] + columnWidths[1] + 5, tableTop + 5);
             doc.text('Qty', tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, tableTop + 5);
             doc.text('Unit Price', tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + 5, tableTop + 5);
-            doc.text('Amount', tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + columnWidths[4] + 5, tableTop + 5);
+            // Place the Amount header with right alignment for consistency
+            doc.text('Amount', tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + columnWidths[4] + columnWidths[5] - 5, tableTop + 5, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
             
             // Draw table rows
             doc.setFont(undefined, 'normal');
@@ -738,13 +741,16 @@ class QuotationManager {
                     doc.rect(tableX, currentY, 185, 7, 'F');
                     
                     doc.setFontSize(9);
+                    doc.setFont('helvetica', 'bold'); // Make headers bold for better visibility
                     doc.setTextColor(0, 0, 0); // Ensure header text is solid black
                     doc.text('No.', tableX + 5, currentY + 5);
                     doc.text('Description', tableX + columnWidths[0] + 5, currentY + 5);
                     doc.text('Dimensions', tableX + columnWidths[0] + columnWidths[1] + 5, currentY + 5);
                     doc.text('Qty', tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, currentY + 5);
                     doc.text('Unit Price', tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + 5, currentY + 5);
-                    doc.text('Amount', tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + columnWidths[4] + 5, currentY + 5);
+                    // Place the Amount header with right alignment for consistency
+                    doc.text('Amount', tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + columnWidths[4] + columnWidths[5] - 5, currentY + 5, { align: 'right' });
+                    doc.setFont('helvetica', 'normal');
                     
                     currentY += 10;
                 }
@@ -863,8 +869,8 @@ class QuotationManager {
                 const dimensionLines = wrappedDimensions.length;
                 const descriptionLines = wrappedDescription.length;
                 const maxLines = Math.max(dimensionLines, descriptionLines);
-                const rowHeight = Math.max(10, maxLines * 5); // Minimum 10 height, plus 5 per additional line
-                
+                const rowHeight = Math.max(10, maxLines * 5 + 3); // Increased minimum height and added buffer
+
                 // Adjust background rectangle height if needed
                 if (maxLines > 1) {
                     // Redraw taller background with transparent color
@@ -877,20 +883,40 @@ class QuotationManager {
                 // Force text color to black before drawing each cell
                 doc.setTextColor(0, 0, 0);
                 
-                // Draw dimensions text with proper wrapping
-                doc.text(wrappedDimensions, tableX + columnWidths[0] + columnWidths[1] + 5, currentY + 3);
+                // Draw dimensions text with proper wrapping - shift Y position slightly for better vertical centering
+                const firstLineY = currentY + 3;
+                for (let i = 0; i < wrappedDimensions.length; i++) {
+                    const lineY = firstLineY + (i * 5);
+                    doc.text(wrappedDimensions[i], tableX + columnWidths[0] + columnWidths[1] + 5, lineY);
+                }
                 
-                // Draw remaining cells
-                doc.text(quantity.toString(), tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, currentY + 5);
+                // Calculate vertical center for remaining single-line cells
+                const verticalCenter = currentY + (rowHeight / 2);
+                
+                // Draw remaining cells - centered vertically in the row
+                doc.text(quantity.toString(), tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + 5, verticalCenter);
                 
                 // Draw unit price with proper formatting
                 const unitPriceText = `₹${Math.round(unitPrice)}`;
-                doc.text(unitPriceText, tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + 5, currentY + 5);
+                doc.text(unitPriceText, tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + 5, verticalCenter);
                 
                 // Fix the amount overflow by aligning right
                 const amountText = `₹${Math.round(amount)}`;
                 const amountX = tableX + columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + columnWidths[4] + columnWidths[5] - 5;
-                doc.text(amountText, amountX, currentY + 5, { align: 'right' });
+                doc.text(amountText, amountX, verticalCenter, { align: 'right' });
+
+                // Also redraw the item number in the new vertical center
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.text((index + 1).toString(), tableX + 5, verticalCenter);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(9);
+                
+                // Redraw description text with proper wrapping - shift Y position for better vertical alignment
+                for (let i = 0; i < wrappedDescription.length; i++) {
+                    const lineY = firstLineY + (i * 5);
+                    doc.text(wrappedDescription[i], tableX + columnWidths[0] + 5, lineY);
+                }
                 
                 // Adjust current Y position based on taller rows if needed
                 if (maxLines > 1) {
