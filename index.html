@@ -208,6 +208,61 @@
                             <button type="button" id="addGrillToQuote" class="btn btn-primary">Add to Quotation</button>
                         </div>
                     </div>
+
+                    <!-- Add hardware section for Grills -->
+                    <div class="hardware-section">
+                        <h3>Hardware</h3>
+                        <div class="hardware-tabs">
+                            <button type="button" id="grillHardwareTab" class="tab-btn active">Hardware</button>
+                        </div>
+                        <div class="hardware-tab-content" id="grillHardwareTabContent">
+                            <form id="grillHardwareForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="grillHardwareName">Hardware Name</label>
+                                        <input type="text" id="grillHardwareName" placeholder="Lock, Hinge, etc." required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="grillHardwareUnit">Units</label>
+                                        <input type="number" id="grillHardwareUnit" min="1" value="1" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="grillHardwareRate">Rate per Unit (₹)</label>
+                                        <input type="number" id="grillHardwareRate" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="calculation-preview">
+                                    <div id="grillHardwareCalculation">Amount: ₹0</div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn">Add Hardware</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="requirements-list">
+                            <h4>Added Hardware</h4>
+                            <div class="table-container">
+                                <table id="grillHardwareTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Hardware Name</th>
+                                            <th>Units</th>
+                                            <th>Rate per Unit</th>
+                                            <th>Amount</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Hardware will be added here dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="total-section">
+                                <p>Total Hardware Amount: ₹<span id="grillHardwareTotalAmount">0</span></p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Pergola Form -->
@@ -330,6 +385,144 @@
                             <button type="button" id="addPergolaToQuote" class="btn btn-primary">Add to Quotation</button>
                         </div>
                     </div>
+                    
+                    <!-- Add hardware and glass sections for Pergolas -->
+                    <div class="pergola-additional-options">
+                        <h3>Additional Options</h3>
+                        <div class="hardware-tabs">
+                            <button type="button" id="pergolaHardwareTab" class="tab-btn active">Hardware</button>
+                            <button type="button" id="pergolaGlassTab" class="tab-btn">Glass</button>
+                        </div>
+                        
+                        <!-- Hardware Tab Content -->
+                        <div class="hardware-tab-content" id="pergolaHardwareTabContent">
+                            <form id="pergolaHardwareForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="pergolaHardwareName">Hardware Name</label>
+                                        <input type="text" id="pergolaHardwareName" placeholder="Bracket, Screw, etc." required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pergolaHardwareUnit">Units</label>
+                                        <input type="number" id="pergolaHardwareUnit" min="1" value="1" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pergolaHardwareRate">Rate per Unit (₹)</label>
+                                        <input type="number" id="pergolaHardwareRate" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="calculation-preview">
+                                    <div id="pergolaHardwareCalculation">Amount: ₹0</div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn">Add Hardware</button>
+                                </div>
+                            </form>
+                            
+                            <div class="requirements-list">
+                                <h4>Added Hardware</h4>
+                                <div class="table-container">
+                                    <table id="pergolaHardwareTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Hardware Name</th>
+                                                <th>Units</th>
+                                                <th>Rate per Unit</th>
+                                                <th>Amount</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Hardware will be added here dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="total-section">
+                                    <p>Total Hardware Amount: ₹<span id="pergolaHardwareTotalAmount">0</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Glass Tab Content -->
+                        <div class="hardware-tab-content" id="pergolaGlassTabContent" style="display: none;">
+                            <form id="pergolaGlassForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="pergolaGlassName">Glass Name</label>
+                                        <input type="text" id="pergolaGlassName" placeholder="Clear, Tinted, etc." required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pergolaGlassThickness">Thickness (mm)</label>
+                                        <input type="number" id="pergolaGlassThickness" step="0.1" min="2" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="pergolaGlassWidth">Width</label>
+                                        <input type="number" id="pergolaGlassWidth" step="0.01" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pergolaGlassDepth">Depth</label>
+                                        <input type="number" id="pergolaGlassDepth" step="0.01" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pergolaGlassDimensionUnit">Unit</label>
+                                        <select id="pergolaGlassDimensionUnit">
+                                            <option value="mm">mm</option>
+                                            <option value="cm">cm</option>
+                                            <option value="inch">inch</option>
+                                            <option value="ft">ft</option>
+                                            <option value="m">m</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="pergolaGlassAreaUnit">Area Unit</label>
+                                        <select id="pergolaGlassAreaUnit">
+                                            <option value="sqft">sq.ft</option>
+                                            <option value="sqm">sq.m</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pergolaGlassRate">Rate per Area Unit (₹)</label>
+                                        <input type="number" id="pergolaGlassRate" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="calculation-preview">
+                                    <div id="pergolaGlassCalculation">Area: 0 | Amount: ₹0</div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn">Add Glass</button>
+                                </div>
+                            </form>
+                            
+                            <div class="requirements-list">
+                                <h4>Added Glass</h4>
+                                <div class="table-container">
+                                    <table id="pergolaGlassTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Glass Type</th>
+                                                <th>Thickness</th>
+                                                <th>Dimensions</th>
+                                                <th>Area</th>
+                                                <th>Rate</th>
+                                                <th>Amount</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Glass will be added here dynamically -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="total-section">
+                                    <p>Total Glass Amount: ₹<span id="pergolaGlassTotalAmount">0</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Window Form -->
@@ -436,6 +629,21 @@
                                     <div class="form-group">
                                         <label for="hardwareCost">Hardware Cost (₹)</label>
                                         <input type="number" id="hardwareCost" step="0.01" value="0">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Add glass options for windows -->
+                            <div class="glass-section">
+                                <h4>Glass Options</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="windowGlassType">Glass Type</label>
+                                        <input type="text" id="windowGlassType" placeholder="Clear, Tinted, etc.">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="windowGlassThickness">Thickness (mm)</label>
+                                        <input type="number" id="windowGlassThickness" step="0.1" min="2">
                                     </div>
                                 </div>
                             </div>

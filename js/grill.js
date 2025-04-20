@@ -10,6 +10,8 @@ class GrillManager {
         this.requirements = [];
         this.totalWeight = 0;
         this.totalAmount = 0;
+        this.hardware = [];
+        this.hardwareTotalAmount = 0;
         this.currentMaterial = {
             width: 0,
             depth: 0,
@@ -32,6 +34,7 @@ class GrillManager {
         // Get form elements
         this.materialForm = document.getElementById('grillMaterialForm');
         this.requirementForm = document.getElementById('grillRequirementForm');
+        this.hardwareForm = document.getElementById('grillHardwareForm');
         
         // Setup event listeners
         this.setupEventListeners();
@@ -55,6 +58,16 @@ class GrillManager {
             e.preventDefault();
             this.addRequirement();
         });
+        
+        // Hardware form submit
+        this.hardwareForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.addHardware();
+        });
+        
+        // Hardware calculation preview
+        document.getElementById('grillHardwareUnit').addEventListener('input', this.updateHardwareCalculation.bind(this));
+        document.getElementById('grillHardwareRate').addEventListener('input', this.updateHardwareCalculation.bind(this));
         
         // Load saved material button
         document.getElementById('loadGrillMaterialBtn').addEventListener('click', () => {
@@ -300,55 +313,179 @@ class GrillManager {
     }
 
     /**
-     * Add current requirements to quotation
+     * Add hardware from the form
      */
-    addToQuotation() {
-        if (!this.requirements.length) {
-            utils.showNotification('No requirements to add', true);
+    addHardware() {
+        // Get values from form
+        const name = document.getElementById('grillHardwareName').value;
+        const units = parseInt(document.getElementById('grillHardwareUnit').value);
+        const rate = parseFloat(document.getElementById('grillHardwareRate').value);
+        
+        // Validate inputs
+        if (!name || !units || !rate) {
+            utils.showNotification('Please fill all hardware fields', true);
             return;
         }
         
-        // Get material description
-        const materialDesc = this.currentMaterial.description || 
-            `${this.currentMaterial.width}x${this.currentMaterial.depth}x${this.currentMaterial.thickness}mm`;
+        // Calculate amount
+        const amount = units * rate;
         
-        // Add to quotation
-        this.quotationManager.addItem({
-            type: 'Grill',
-            description: `MS Grill - ${materialDesc}`,
-            quantity: `${this.requirements.length} items`,
-            totalWeight: this.totalWeight,
-            unit: 'kg',
-            rate: this.currentMaterial.rate,
-            amount: this.totalAmount,
-            details: {
-                material: this.currentMaterial,
-                requirements: [...this.requirements]
-            }
+        // Add to hardware array
+        const hardwareItem = {
+            id: utils.generateId(),
+            name,
+            units,
+            rate,
+            amount
+        };
+        
+        this.hardware.push(hardwareItem);
+        
+        // Update UI
+        this.renderHardware();
+        this.updateHardwareTotals();
+        
+        // Clear form
+        document.getElementById('grillHardwareName').value = '';
+        document.getElementById('grillHardwareUnit').value = '1';
+        document.getElementById('grillHardwareRate').value = '';
+        document.getElementById('grillHardwareName').focus();
+    }
+    
+    /**
+     * Update hardware calculation preview
+     */
+    updateHardwareCalculation() {
+        const units = parseInt(document.getElementById('grillHardwareUnit').value) || 0;
+        const rate = parseFloat(document.getElementById('grillHardwareRate').value) || 0;
+        const amount = units * rate;
+        
+        document.getElementById('grillHardwareCalculation').textContent = `Amount: ₹${utils.formatCurrency(amount)}`;
+    }
+    
+    /**
+     * Render hardware table
+     */
+    renderHardware() {
+        const tbody = document.getElementById('grillHardwareTable').querySelector('tbody');
+        tbody.innerHTML = '';
+        
+        if (this.hardware.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="5">No hardware added yet</td>`;
+            tbody.appendChild(row);
+            return;
+        }
+        
+        this.hardware.forEach(hw => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${hw.name}</td>
+                <td>${hw.units}</td>
+                <td>₹${utils.formatCurrency(hw.rate)}</td>
+                <td>₹${utils.formatCurrency(hw.amount)}</td>
+                <td>
+                    <button class="delete-btn" data-id="${hw.id}" data-type="hardware">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            
+            // Add delete button event
+            row.querySelector('.delete-btn').addEventListener('click', () => {
+                this.deleteHardware(hw.id);
+            });
+            
+            tbody.appendChild(row);
         });
+    }
+    
+    /**
+     * Update hardware totals
+     */
+    updateHardwareTotals() {
+        this.hardwareTotalAmount = this.hardware.reduce((sum, hw) => sum + hw.amount, 0);
+        document.getElementById('grillHardwareTotalAmount').textContent = utils.formatCurrency(this.hardwareTotalAmount);
+    }
+    
+    /**
+     * Delete hardware item
+     * @param {string} id - The hardware ID
+     */
+    deleteHardware(id) {
+        this.hardware = this.hardware.filter(hw => hw.id !== id);
+        this.renderHardware();
+        this.updateHardwareTotals();
+    }
+
+    /**
+     * Add to quotation
+     */
+    addToQuotation() {
+        // Check if requirements exist
+        if (this.requirements.length === 0 && this.hardware.length === 0) {
+            utils.showNotification('No items to add to quotation', true);
+            return;
+        }
         
-        utils.showNotification('Added to quotation');
-        
-        // For cutting plan
-        if (document.getElementById('generateCuttingPlan').checked) {
-            // Prepare pieces for cutting plan
-            const pieces = this.requirements.map(req => ({
+        // Create a quotation item for material requirements
+        if (this.requirements.length > 0) {
+            // Create title based on material description or default
+            const materialTitle = this.currentMaterial.description 
+                ? `Grill (${this.currentMaterial.description})` 
+                : `Grill (${this.currentMaterial.width}×${this.currentMaterial.depth}×${this.currentMaterial.thickness}mm)`;
+            
+            // Format dimensions for display
+            const dimensions = `${this.currentMaterial.width}×${this.currentMaterial.depth}×${this.currentMaterial.thickness}mm`;
+            
+            // Create indexed requirement list for cutting plan
+            const requirements = this.requirements.map(req => ({
                 size: req.size,
                 unit: req.unit,
                 quantity: req.quantity,
-                id: req.id
+                itemType: 'Grill',
+                description: materialTitle
             }));
             
-            // Get stock length from options
-            const stockLength = parseFloat(document.getElementById('stockLength').value);
-            const stockUnit = document.getElementById('stockLengthUnit').value;
-            
-            // Set stock length in mm
-            cuttingPlan.setStockLength(utils.convertLength(stockLength, stockUnit, 'mm'));
-            
-            // Calculate cutting plan
-            cuttingPlan.calculateCuttingPlan(pieces);
+            // Add material to quotation
+            this.quotationManager.addItem({
+                type: 'Grill',
+                name: materialTitle,
+                description: `Material: ${dimensions}, ${this.currentMaterial.weight} ${this.currentMaterial.weightUnit}`,
+                indexedDescription: `Grill Material - ${dimensions}`,
+                quantity: 1,
+                unit: 'set',
+                amount: this.totalAmount,
+                details: {
+                    material: {
+                        type: this.currentMaterial.description || 'Grill Material',
+                        width: this.currentMaterial.width,
+                        depth: this.currentMaterial.depth,
+                        thickness: this.currentMaterial.thickness,
+                        weight: this.currentMaterial.weight,
+                        weightUnit: this.currentMaterial.weightUnit,
+                        dimensions: dimensions
+                    },
+                    requirements: requirements
+                }
+            });
         }
+        
+        // Add hardware items individually
+        this.hardware.forEach(hw => {
+            this.quotationManager.addItem({
+                type: 'Hardware',
+                name: `Grill Hardware - ${hw.name}`,
+                description: `${hw.name} (${hw.units} units)`,
+                indexedDescription: `Hardware - ${hw.name}`,
+                quantity: hw.units,
+                unit: 'pcs',
+                rate: hw.rate,
+                amount: hw.amount
+            });
+        });
+        
+        utils.showNotification('Added to quotation successfully');
     }
 
     /**
@@ -366,26 +503,44 @@ class GrillManager {
      */
     saveState() {
         return {
-            currentMaterial: this.currentMaterial,
             requirements: this.requirements,
             totalWeight: this.totalWeight,
-            totalAmount: this.totalAmount
+            totalAmount: this.totalAmount,
+            hardware: this.hardware,
+            hardwareTotalAmount: this.hardwareTotalAmount,
+            currentMaterial: this.currentMaterial
         };
     }
 
     /**
-     * Load state from saved JSON
+     * Load state from saved data
      * @param {Object} state - The state object
      */
     loadState(state) {
         if (!state) return;
         
-        this.currentMaterial = state.currentMaterial;
-        this.requirements = state.requirements;
-        this.totalWeight = state.totalWeight;
-        this.totalAmount = state.totalAmount;
+        this.requirements = state.requirements || [];
+        this.totalWeight = state.totalWeight || 0;
+        this.totalAmount = state.totalAmount || 0;
+        this.hardware = state.hardware || [];
+        this.hardwareTotalAmount = state.hardwareTotalAmount || 0;
+        this.currentMaterial = state.currentMaterial || {
+            width: 0,
+            depth: 0,
+            thickness: 0,
+            weight: 0,
+            weightUnit: 'kg/m',
+            rate: 0,
+            description: ''
+        };
         
         // Update UI
+        this.renderRequirements();
+        this.renderHardware();
+        this.updateTotals();
+        this.updateHardwareTotals();
+        
+        // Populate material form
         document.getElementById('grillMaterialWidth').value = this.currentMaterial.width;
         document.getElementById('grillMaterialDepth').value = this.currentMaterial.depth;
         document.getElementById('grillMaterialThickness').value = this.currentMaterial.thickness;
@@ -393,9 +548,6 @@ class GrillManager {
         document.getElementById('grillWeightUnit').value = this.currentMaterial.weightUnit;
         document.getElementById('grillMaterialRate').value = this.currentMaterial.rate;
         document.getElementById('grillMaterialDescription').value = this.currentMaterial.description || '';
-        
-        this.renderRequirements();
-        this.updateTotals();
     }
 }
 

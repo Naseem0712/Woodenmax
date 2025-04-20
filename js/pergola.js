@@ -10,6 +10,10 @@ class PergolaManager {
         this.requirements = [];
         this.totalWeight = 0;
         this.totalAmount = 0;
+        this.hardware = [];
+        this.hardwareTotalAmount = 0;
+        this.glass = [];
+        this.glassTotalAmount = 0;
         this.currentMaterial = {
             width: 0,
             depth: 0,
@@ -32,6 +36,8 @@ class PergolaManager {
         // Get form elements
         this.materialForm = document.getElementById('pergolaMaterialForm');
         this.requirementForm = document.getElementById('pergolaRequirementForm');
+        this.hardwareForm = document.getElementById('pergolaHardwareForm');
+        this.glassForm = document.getElementById('pergolaGlassForm');
         
         // Setup event listeners
         this.setupEventListeners();
@@ -56,6 +62,38 @@ class PergolaManager {
             this.addRequirement();
         });
         
+        // Hardware form submit
+        this.hardwareForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.addHardware();
+        });
+        
+        // Glass form submit
+        this.glassForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.addGlass();
+        });
+        
+        // Tab buttons
+        document.getElementById('pergolaHardwareTab').addEventListener('click', () => {
+            this.switchTab('hardware');
+        });
+        
+        document.getElementById('pergolaGlassTab').addEventListener('click', () => {
+            this.switchTab('glass');
+        });
+        
+        // Hardware calculation preview
+        document.getElementById('pergolaHardwareUnit').addEventListener('input', this.updateHardwareCalculation.bind(this));
+        document.getElementById('pergolaHardwareRate').addEventListener('input', this.updateHardwareCalculation.bind(this));
+        
+        // Glass calculation preview
+        document.getElementById('pergolaGlassWidth').addEventListener('input', this.updateGlassCalculation.bind(this));
+        document.getElementById('pergolaGlassDepth').addEventListener('input', this.updateGlassCalculation.bind(this));
+        document.getElementById('pergolaGlassDimensionUnit').addEventListener('change', this.updateGlassCalculation.bind(this));
+        document.getElementById('pergolaGlassAreaUnit').addEventListener('change', this.updateGlassCalculation.bind(this));
+        document.getElementById('pergolaGlassRate').addEventListener('input', this.updateGlassCalculation.bind(this));
+        
         // Load saved material button
         document.getElementById('loadPergolaMaterialBtn').addEventListener('click', () => {
             this.loadSavedMaterial();
@@ -65,6 +103,29 @@ class PergolaManager {
         document.getElementById('addPergolaToQuote').addEventListener('click', () => {
             this.addToQuotation();
         });
+    }
+
+    /**
+     * Switch between hardware and glass tabs
+     * @param {string} tab - The tab to switch to: 'hardware' or 'glass'
+     */
+    switchTab(tab) {
+        const hardwareTab = document.getElementById('pergolaHardwareTab');
+        const glassTab = document.getElementById('pergolaGlassTab');
+        const hardwareContent = document.getElementById('pergolaHardwareTabContent');
+        const glassContent = document.getElementById('pergolaGlassTabContent');
+        
+        if (tab === 'hardware') {
+            hardwareTab.classList.add('active');
+            glassTab.classList.remove('active');
+            hardwareContent.style.display = 'block';
+            glassContent.style.display = 'none';
+        } else if (tab === 'glass') {
+            hardwareTab.classList.remove('active');
+            glassTab.classList.add('active');
+            hardwareContent.style.display = 'none';
+            glassContent.style.display = 'block';
+        }
     }
 
     /**
@@ -307,57 +368,370 @@ class PergolaManager {
     }
 
     /**
-     * Add current requirements to quotation
+     * Add hardware from the form
      */
-    addToQuotation() {
-        if (!this.requirements.length) {
-            utils.showNotification('No requirements to add', true);
+    addHardware() {
+        // Get values from form
+        const name = document.getElementById('pergolaHardwareName').value;
+        const units = parseInt(document.getElementById('pergolaHardwareUnit').value);
+        const rate = parseFloat(document.getElementById('pergolaHardwareRate').value);
+        
+        // Validate inputs
+        if (!name || !units || !rate) {
+            utils.showNotification('Please fill all hardware fields', true);
             return;
         }
         
-        // Get material description
-        const materialDesc = this.currentMaterial.description || 
-            `${this.currentMaterial.width}x${this.currentMaterial.depth}x${this.currentMaterial.thickness}mm Pipe`;
+        // Calculate amount
+        const amount = units * rate;
         
-        // Add to quotation
-        this.quotationManager.addItem({
-            type: 'Pergola',
-            description: `Pergola - ${materialDesc}`,
-            quantity: `${this.requirements.length} items`,
-            totalWeight: this.totalWeight,
-            unit: 'kg',
-            rate: this.currentMaterial.rate,
-            amount: this.totalAmount,
-            details: {
-                material: this.currentMaterial,
-                requirements: [...this.requirements]
-            }
+        // Add to hardware array
+        const hardwareItem = {
+            id: utils.generateId(),
+            name,
+            units,
+            rate,
+            amount
+        };
+        
+        this.hardware.push(hardwareItem);
+        
+        // Update UI
+        this.renderHardware();
+        this.updateHardwareTotals();
+        
+        // Clear form
+        document.getElementById('pergolaHardwareName').value = '';
+        document.getElementById('pergolaHardwareUnit').value = '1';
+        document.getElementById('pergolaHardwareRate').value = '';
+        document.getElementById('pergolaHardwareName').focus();
+    }
+    
+    /**
+     * Update hardware calculation preview
+     */
+    updateHardwareCalculation() {
+        const units = parseInt(document.getElementById('pergolaHardwareUnit').value) || 0;
+        const rate = parseFloat(document.getElementById('pergolaHardwareRate').value) || 0;
+        const amount = units * rate;
+        
+        document.getElementById('pergolaHardwareCalculation').textContent = `Amount: ₹${utils.formatCurrency(amount)}`;
+    }
+    
+    /**
+     * Add glass from the form
+     */
+    addGlass() {
+        // Get values from form
+        const name = document.getElementById('pergolaGlassName').value;
+        const thickness = parseFloat(document.getElementById('pergolaGlassThickness').value);
+        const width = parseFloat(document.getElementById('pergolaGlassWidth').value);
+        const depth = parseFloat(document.getElementById('pergolaGlassDepth').value);
+        const dimensionUnit = document.getElementById('pergolaGlassDimensionUnit').value;
+        const areaUnit = document.getElementById('pergolaGlassAreaUnit').value;
+        const rate = parseFloat(document.getElementById('pergolaGlassRate').value);
+        
+        // Validate inputs
+        if (!name || !thickness || !width || !depth || !rate) {
+            utils.showNotification('Please fill all glass fields', true);
+            return;
+        }
+        
+        // Calculate area based on dimensions and unit
+        const { area, formattedArea } = this.calculateGlassArea(width, depth, dimensionUnit, areaUnit);
+        
+        // Calculate amount: area × rate
+        const amount = area * rate;
+        
+        // Add to glass array
+        const glassItem = {
+            id: utils.generateId(),
+            name,
+            thickness,
+            width,
+            depth,
+            dimensionUnit,
+            area,
+            formattedArea,
+            areaUnit,
+            rate,
+            amount
+        };
+        
+        this.glass.push(glassItem);
+        
+        // Update UI
+        this.renderGlass();
+        this.updateGlassTotals();
+        
+        // Clear form
+        document.getElementById('pergolaGlassName').value = '';
+        document.getElementById('pergolaGlassThickness').value = '';
+        document.getElementById('pergolaGlassWidth').value = '';
+        document.getElementById('pergolaGlassDepth').value = '';
+        document.getElementById('pergolaGlassName').focus();
+    }
+    
+    /**
+     * Calculate glass area based on dimensions and unit
+     * @param {number} width - The width
+     * @param {number} depth - The depth
+     * @param {string} dimensionUnit - The dimension unit (mm, cm, inch, ft, m)
+     * @param {string} areaUnit - The area unit (sqft, sqm)
+     * @returns {Object} - Object with area and formatted area
+     */
+    calculateGlassArea(width, depth, dimensionUnit, areaUnit) {
+        // Convert dimensions to meters
+        const widthInM = utils.convertLength(width, dimensionUnit, 'm');
+        const depthInM = utils.convertLength(depth, dimensionUnit, 'm');
+        
+        // Calculate area in square meters
+        const areaInSqM = widthInM * depthInM;
+        
+        // Convert to target area unit if needed
+        let finalArea;
+        if (areaUnit === 'sqft') {
+            // 1 sqm = 10.764 sqft
+            finalArea = areaInSqM * 10.764;
+        } else {
+            finalArea = areaInSqM;
+        }
+        
+        // Format area for display
+        const formattedArea = `${utils.roundToDecimals(finalArea, 2)} ${areaUnit === 'sqft' ? 'sq.ft' : 'sq.m'}`;
+        
+        return {
+            area: utils.roundToDecimals(finalArea, 4),
+            formattedArea
+        };
+    }
+    
+    /**
+     * Update glass calculation preview
+     */
+    updateGlassCalculation() {
+        const width = parseFloat(document.getElementById('pergolaGlassWidth').value) || 0;
+        const depth = parseFloat(document.getElementById('pergolaGlassDepth').value) || 0;
+        const dimensionUnit = document.getElementById('pergolaGlassDimensionUnit').value;
+        const areaUnit = document.getElementById('pergolaGlassAreaUnit').value;
+        const rate = parseFloat(document.getElementById('pergolaGlassRate').value) || 0;
+        
+        if (width > 0 && depth > 0) {
+            const { area, formattedArea } = this.calculateGlassArea(width, depth, dimensionUnit, areaUnit);
+            const amount = area * rate;
+            
+            document.getElementById('pergolaGlassCalculation').textContent = 
+                `Area: ${formattedArea} | Amount: ₹${utils.formatCurrency(amount)}`;
+        } else {
+            document.getElementById('pergolaGlassCalculation').textContent = 'Area: 0 | Amount: ₹0';
+        }
+    }
+    
+    /**
+     * Render hardware table
+     */
+    renderHardware() {
+        const tbody = document.getElementById('pergolaHardwareTable').querySelector('tbody');
+        tbody.innerHTML = '';
+        
+        if (this.hardware.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="5">No hardware added yet</td>`;
+            tbody.appendChild(row);
+            return;
+        }
+        
+        this.hardware.forEach(hw => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${hw.name}</td>
+                <td>${hw.units}</td>
+                <td>₹${utils.formatCurrency(hw.rate)}</td>
+                <td>₹${utils.formatCurrency(hw.amount)}</td>
+                <td>
+                    <button class="delete-btn" data-id="${hw.id}" data-type="hardware">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            
+            // Add delete button event
+            row.querySelector('.delete-btn').addEventListener('click', () => {
+                this.deleteHardware(hw.id);
+            });
+            
+            tbody.appendChild(row);
         });
+    }
+    
+    /**
+     * Render glass table
+     */
+    renderGlass() {
+        const tbody = document.getElementById('pergolaGlassTable').querySelector('tbody');
+        tbody.innerHTML = '';
         
-        utils.showNotification('Added to quotation');
+        if (this.glass.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="7">No glass added yet</td>`;
+            tbody.appendChild(row);
+            return;
+        }
         
-        // For cutting plan
-        if (document.getElementById('generateCuttingPlan').checked) {
-            // Prepare pieces for cutting plan
-            const pieces = this.requirements.map(req => ({
+        this.glass.forEach(g => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${g.name}</td>
+                <td>${g.thickness} mm</td>
+                <td>${g.width}×${g.depth} ${g.dimensionUnit}</td>
+                <td>${g.formattedArea}</td>
+                <td>₹${utils.formatCurrency(g.rate)}/${g.areaUnit === 'sqft' ? 'sq.ft' : 'sq.m'}</td>
+                <td>₹${utils.formatCurrency(g.amount)}</td>
+                <td>
+                    <button class="delete-btn" data-id="${g.id}" data-type="glass">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            
+            // Add delete button event
+            row.querySelector('.delete-btn').addEventListener('click', () => {
+                this.deleteGlass(g.id);
+            });
+            
+            tbody.appendChild(row);
+        });
+    }
+    
+    /**
+     * Update hardware totals
+     */
+    updateHardwareTotals() {
+        this.hardwareTotalAmount = this.hardware.reduce((sum, hw) => sum + hw.amount, 0);
+        document.getElementById('pergolaHardwareTotalAmount').textContent = utils.formatCurrency(this.hardwareTotalAmount);
+    }
+    
+    /**
+     * Update glass totals
+     */
+    updateGlassTotals() {
+        this.glassTotalAmount = this.glass.reduce((sum, g) => sum + g.amount, 0);
+        document.getElementById('pergolaGlassTotalAmount').textContent = utils.formatCurrency(this.glassTotalAmount);
+    }
+    
+    /**
+     * Delete hardware item
+     * @param {string} id - The hardware ID
+     */
+    deleteHardware(id) {
+        this.hardware = this.hardware.filter(hw => hw.id !== id);
+        this.renderHardware();
+        this.updateHardwareTotals();
+    }
+    
+    /**
+     * Delete glass item
+     * @param {string} id - The glass ID
+     */
+    deleteGlass(id) {
+        this.glass = this.glass.filter(g => g.id !== id);
+        this.renderGlass();
+        this.updateGlassTotals();
+    }
+
+    /**
+     * Add to quotation
+     */
+    addToQuotation() {
+        // Check if any items exist
+        if (this.requirements.length === 0 && this.hardware.length === 0 && this.glass.length === 0) {
+            utils.showNotification('No items to add to quotation', true);
+            return;
+        }
+        
+        // Create a quotation item for material requirements
+        if (this.requirements.length > 0) {
+            // Create title based on material description or default
+            const materialTitle = this.currentMaterial.description 
+                ? `Pergola (${this.currentMaterial.description})` 
+                : `Pergola (${this.currentMaterial.width}×${this.currentMaterial.depth}×${this.currentMaterial.thickness}mm)`;
+            
+            // Format dimensions for display
+            const dimensions = `${this.currentMaterial.width}×${this.currentMaterial.depth}×${this.currentMaterial.thickness}mm`;
+            
+            // Create indexed requirement list for cutting plan
+            const requirements = this.requirements.map(req => ({
                 size: req.size,
                 unit: req.unit,
                 quantity: req.quantity,
-                id: req.id
+                itemType: req.itemType,
+                description: materialTitle
             }));
             
-            // Get stock length from options
-            const stockLength = parseFloat(document.getElementById('stockLength').value);
-            const stockUnit = document.getElementById('stockLengthUnit').value;
-            
-            // Set stock length in mm
-            cuttingPlan.setStockLength(utils.convertLength(stockLength, stockUnit, 'mm'));
-            
-            // Calculate cutting plan
-            cuttingPlan.calculateCuttingPlan(pieces);
+            // Add material to quotation
+            this.quotationManager.addItem({
+                type: 'Pergola',
+                name: materialTitle,
+                description: `Material: ${dimensions}, ${this.currentMaterial.weight} ${this.currentMaterial.weightUnit}`,
+                indexedDescription: `Pergola Material - ${dimensions}`,
+                quantity: 1,
+                unit: 'set',
+                amount: this.totalAmount,
+                details: {
+                    material: {
+                        type: this.currentMaterial.description || 'Pergola Material',
+                        width: this.currentMaterial.width,
+                        depth: this.currentMaterial.depth,
+                        thickness: this.currentMaterial.thickness,
+                        weight: this.currentMaterial.weight,
+                        weightUnit: this.currentMaterial.weightUnit,
+                        dimensions: dimensions
+                    },
+                    requirements: requirements
+                }
+            });
         }
+        
+        // Add hardware items individually
+        this.hardware.forEach(hw => {
+            this.quotationManager.addItem({
+                type: 'Hardware',
+                name: `Pergola Hardware - ${hw.name}`,
+                description: `${hw.name} (${hw.units} units)`,
+                indexedDescription: `Hardware - ${hw.name}`,
+                quantity: hw.units,
+                unit: 'pcs',
+                rate: hw.rate,
+                amount: hw.amount
+            });
+        });
+        
+        // Add glass items individually
+        this.glass.forEach(g => {
+            this.quotationManager.addItem({
+                type: 'Glass',
+                name: `Pergola Glass - ${g.name}`,
+                description: `${g.name}, ${g.thickness}mm thickness, ${g.width}×${g.depth} ${g.dimensionUnit}, Area: ${g.formattedArea}`,
+                indexedDescription: `Glass - ${g.name} ${g.thickness}mm`,
+                quantity: 1,
+                unit: g.areaUnit === 'sqft' ? 'sq.ft' : 'sq.m',
+                rate: g.rate,
+                amount: g.amount,
+                details: {
+                    glassType: g.name,
+                    thickness: g.thickness,
+                    width: g.width,
+                    depth: g.depth,
+                    dimensionUnit: g.dimensionUnit,
+                    area: g.area,
+                    areaUnit: g.areaUnit
+                }
+            });
+        });
+        
+        utils.showNotification('Added to quotation');
     }
-
+    
     /**
      * Clear all requirements
      */
@@ -376,7 +750,11 @@ class PergolaManager {
             currentMaterial: this.currentMaterial,
             requirements: this.requirements,
             totalWeight: this.totalWeight,
-            totalAmount: this.totalAmount
+            totalAmount: this.totalAmount,
+            hardware: this.hardware,
+            hardwareTotalAmount: this.hardwareTotalAmount,
+            glass: this.glass,
+            glassTotalAmount: this.glassTotalAmount
         };
     }
 
@@ -391,6 +769,10 @@ class PergolaManager {
         this.requirements = state.requirements;
         this.totalWeight = state.totalWeight;
         this.totalAmount = state.totalAmount;
+        this.hardware = state.hardware || [];
+        this.hardwareTotalAmount = state.hardwareTotalAmount || 0;
+        this.glass = state.glass || [];
+        this.glassTotalAmount = state.glassTotalAmount || 0;
         
         // Update UI
         document.getElementById('pergolaMaterialWidth').value = this.currentMaterial.width;
@@ -403,8 +785,12 @@ class PergolaManager {
         
         this.renderRequirements();
         this.updateTotals();
+        this.renderHardware();
+        this.updateHardwareTotals();
+        this.renderGlass();
+        this.updateGlassTotals();
     }
 }
 
 // Create global instance of the pergola manager
-window.pergolaManager = new PergolaManager(); 
+window.pergolaManager = new PergolaManager();

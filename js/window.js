@@ -145,6 +145,10 @@ class WindowManager {
         const hardwareType = document.getElementById('hardwareType').value;
         const hardwareCost = parseFloat(document.getElementById('hardwareCost').value) || 0;
         
+        // Glass options
+        const glassType = document.getElementById('windowGlassType').value || '';
+        const glassThickness = parseFloat(document.getElementById('windowGlassThickness').value) || 0;
+        
         // Description
         const description = document.getElementById('windowDescription').value;
         
@@ -192,6 +196,8 @@ class WindowManager {
             windowUnitAmount: windowUnitAmount,
             amount,
             description,
+            glassType,
+            glassThickness,
             configuration: {
                 glassDoorsCount,
                 meshDoorsCount,
@@ -291,37 +297,52 @@ class WindowManager {
         
         if (this.windows.length === 0) {
             const row = document.createElement('tr');
-            row.innerHTML = `<td colspan="8">No windows added yet</td>`;
+            row.innerHTML = `<td colspan="9">No windows added yet</td>`;
             tbody.appendChild(row);
             return;
         }
         
         this.windows.forEach(window => {
-            const dimensions = `${window.width} × ${window.height} ${window.unit}`;
-            const area = `${utils.formatArea(window.area, window.areaUnit)}`;
-            
-            // Create calculation breakdown with better formatting
-            const calcBreakdown = `
-                Area: ${area}
-                Rate: ${utils.formatCurrency(window.ratePerUnit)}/${window.areaUnit}
-                Area Cost: ₹${utils.formatCurrency(window.areaAmount)}
-                ${window.hardwareCost > 0 ? `Hardware: ₹${utils.formatCurrency(window.hardwareCost)}` : ''}
-                Per Window: ₹${utils.formatCurrency(window.windowUnitAmount)}
-                Quantity: ${window.quantity}
-                Total: ₹${utils.formatCurrency(window.amount)}
-            `;
-            
             const row = document.createElement('tr');
+            
+            // Create hardware details text
+            const hardwareDetails = window.hardwareCost > 0 
+                ? `${window.hardwareType}: ₹${utils.formatCurrency(window.hardwareCost)}` 
+                : 'None';
+                
+            // Create glass details text
+            let glassDetails = '';
+            if (window.glassType) {
+                glassDetails = `${window.glassType}`;
+                if (window.glassThickness) {
+                    glassDetails += `, ${window.glassThickness}mm`;
+                }
+            }
+            
             row.innerHTML = `
                 <td>${window.windowType}</td>
-                <td>${dimensions}</td>
+                <td>${window.width}×${window.height} ${window.unit}</td>
                 <td>${window.quantity}</td>
-                <td>${area}</td>
-                <td>${window.configDescription || '-'}</td>
-                <td>${window.hardwareType} (₹${utils.formatCurrency(window.hardwareCost)})</td>
+                <td>${window.area} ${window.areaUnit}</td>
+                <td>${this.createConfigDescription(
+                    window.configuration.glassDoorsCount,
+                    window.configuration.meshDoorsCount,
+                    window.configuration.openableDoorsCount,
+                    window.configuration.withMesh,
+                    window.configuration.topFixed,
+                    window.configuration.bottomFixed
+                )}</td>
+                <td title="${hardwareDetails}">
+                    ${window.hardwareType}${window.glassType ? '<br><small>' + glassDetails + '</small>' : ''}
+                </td>
                 <td>
-                    <div class="rate-label">₹${utils.formatCurrency(window.ratePerUnit)}/${window.areaUnit}</div>
-                    <div class="calc-breakdown">${calcBreakdown}</div>
+                    <span class="rate-label">₹${utils.formatCurrency(window.ratePerUnit)}/${window.areaUnit}</span>
+                    <div class="calc-breakdown">
+                        Area: ${window.area} ${window.areaUnit} × ₹${utils.formatCurrency(window.ratePerUnit)} = ₹${utils.formatCurrency(window.areaAmount)}
+                        ${window.hardwareCost > 0 ? `\nHardware: ₹${utils.formatCurrency(window.hardwareCost)}` : ''}
+                        \nPer window: ₹${utils.formatCurrency(window.windowUnitAmount)}
+                        \nTotal (${window.quantity} pcs): ₹${utils.formatCurrency(window.amount)}
+                    </div>
                 </td>
                 <td>₹${utils.formatCurrency(window.amount)}</td>
                 <td>
@@ -399,58 +420,53 @@ class WindowManager {
      * Add current windows to quotation
      */
     addToQuotation() {
-        if (!this.windows.length) {
+        if (this.windows.length === 0) {
             utils.showNotification('No windows to add', true);
             return;
         }
         
-        // Add each window type as a separate item
+        // Group windows by type
         const groupedWindows = this.groupWindowsByType();
         
-        Object.entries(groupedWindows).forEach(([type, windows]) => {
+        // Add each window group to quotation
+        Object.entries(groupedWindows).forEach(([windowType, windows]) => {
+            const totalArea = this.calculateGroupArea(windows);
             const totalAmount = windows.reduce((sum, w) => sum + w.amount, 0);
             const totalQuantity = windows.reduce((sum, w) => sum + w.quantity, 0);
-            const totalArea = this.calculateGroupArea(windows);
-            const areaUnit = windows[0].areaUnit;
             
-            // Calculate average rate per unit (weighted by area)
-            const weightedRateTotal = windows.reduce((sum, w) => sum + (w.ratePerUnit * w.area * w.quantity), 0);
-            const totalWindowArea = windows.reduce((sum, w) => sum + (w.area * w.quantity), 0);
-            const avgRatePerUnit = weightedRateTotal / totalWindowArea;
+            // Get sample window for details
+            const sampleWindow = windows[0];
+            
+            // Create window specifications
+            const windowDetails = windows.map(w => ({
+                width: w.width,
+                height: w.height,
+                unit: w.unit,
+                quantity: w.quantity,
+                hardwareType: w.hardwareType,
+                hardwareCost: w.hardwareCost,
+                glassType: w.glassType,
+                glassThickness: w.glassThickness,
+                configuration: w.configuration,
+                description: w.description
+            }));
             
             // Add to quotation
             this.quotationManager.addItem({
                 type: 'Window',
-                description: `${type} Window`,
+                name: `${windowType} Window${totalQuantity > 1 ? 's' : ''}`,
+                description: `${totalQuantity} pcs, ${totalArea} ${sampleWindow.areaUnit}`,
+                indexedDescription: `${windowType} Windows - ${totalQuantity} pcs`,
                 quantity: totalQuantity,
-                unit: 'windows',
-                totalArea: totalArea,
-                areaUnit: areaUnit,
-                ratePerUnit: avgRatePerUnit,
+                unit: 'pcs',
                 amount: totalAmount,
                 details: {
-                    windows: windows.map(w => ({
-                        ...w,
-                        // Ensure all required properties are available
-                        id: w.id,
-                        windowType: w.windowType,
-                        width: w.width,
-                        height: w.height,
-                        unit: w.unit,
-                        quantity: w.quantity,
-                        area: w.area,
-                        areaUnit: w.areaUnit,
-                        ratePerUnit: w.ratePerUnit,
-                        hardwareType: w.hardwareType,
-                        hardwareCost: w.hardwareCost,
-                        amount: w.amount,
-                        configDescription: w.configDescription
-                    }))
+                    windows: windowDetails
                 }
             });
         });
         
-        utils.showNotification('Added to quotation');
+        utils.showNotification('Windows added to quotation');
     }
 
     /**

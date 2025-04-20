@@ -826,4 +826,116 @@ input, select, textarea, button {
 
 #multipleStockLengthsContainer .form-row {
     margin-top: 10px;
+}
+
+/* Add styles for hardware tabs */
+.hardware-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-btn {
+    padding: 8px 15px;
+    background-color: rgba(44, 62, 80, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
+    cursor: pointer;
+    margin-right: 5px;
+    border-radius: 5px 5px 0 0;
+    color: var(--light-color);
+    transition: var(--transition);
+}
+
+.tab-btn:hover {
+    background-color: rgba(52, 152, 219, 0.2);
+}
+
+.tab-btn.active {
+    background-color: rgba(52, 152, 219, 0.3);
+    border-bottom: 1px solid rgba(52, 152, 219, 0.3);
+    margin-bottom: -1px;
+    font-weight: bold;
+}
+
+.hardware-tab-content {
+    background-color: rgba(44, 62, 80, 0.3);
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: none;
+    margin-bottom: 20px;
+    border-radius: 0 0 4px 4px;
+}
+
+.calculation-preview {
+    margin: 10px 0;
+    padding: 8px;
+    background-color: rgba(52, 152, 219, 0.1);
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    font-weight: bold;
+    color: var(--light-color);
+}
+
+/* Improve the glass section */
+.glass-section {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: rgba(44, 62, 80, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.glass-section h4 {
+    color: var(--accent-color);
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+/* Hardware section for all product types */
+.hardware-section {
+    background-color: rgba(44, 62, 80, 0.3);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    margin: 15px 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pergola-additional-options {
+    margin-top: 20px;
+}
+
+.pergola-additional-options h3 {
+    margin-bottom: 15px;
+    color: var(--light-color);
+}
+
+/* Ensure all inputs and selects have transparent backgrounds */
+.hardware-tab-content input,
+.hardware-tab-content select,
+.hardware-tab-content textarea,
+.glass-section input,
+.glass-section select,
+.glass-section textarea,
+.hardware-section input,
+.hardware-section select,
+.hardware-section textarea {
+    background-color: transparent;
+    color: var(--light-color);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hardware-tab-content input:focus,
+.hardware-tab-content select:focus,
+.hardware-tab-content textarea:focus,
+.glass-section input:focus,
+.glass-section select:focus,
+.glass-section textarea:focus,
+.hardware-section input:focus,
+.hardware-section select:focus,
+.hardware-section textarea:focus {
+    border-color: var(--accent-color);
+    background-color: rgba(52, 152, 219, 0.1);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
 } 
