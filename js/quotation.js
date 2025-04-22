@@ -555,37 +555,18 @@ class QuotationManager {
             return;
         }
         
-        console.log('Checking if jsPDF is loaded...');
+        console.log('Starting PDF generation...');
         
         try {
             utils.showLoading(true);
             
-            // Try different approaches to initialize jsPDF
+            // Initialize PDF document using our utility function
             let doc;
             try {
-                // Try to import jsPDF from window.jspdf (newer versions)
-                if (window.jspdf && typeof window.jspdf.jsPDF === 'function') {
-                    const { jsPDF } = window.jspdf;
-                    doc = new jsPDF();
-                    console.log('jsPDF initialized using window.jspdf.jsPDF');
-                } 
-                // Try global jsPDF constructor (older versions)
-                else if (typeof jsPDF === 'function') {
-                    doc = new jsPDF();
-                    console.log('jsPDF initialized using global jsPDF constructor');
-                }
-                // Try window.jsPDF as a fallback
-                else if (typeof window.jsPDF === 'function') {
-                    doc = new window.jsPDF();
-                    console.log('jsPDF initialized using window.jsPDF');
-                }
-                // No jsPDF found
-                else {
-                    throw new Error('PDF library not found');
-                }
+                doc = await utils.initializePDF();
             } catch (initError) {
                 console.error('Failed to initialize PDF:', initError);
-                utils.showNotification('PDF library initialization failed. Please refresh the page and try again.', true);
+                utils.showNotification('PDF library initialization failed. Please use the retry button or refresh the page.', true);
                 utils.showLoading(false);
                 return;
             }

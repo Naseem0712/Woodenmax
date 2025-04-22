@@ -839,27 +839,106 @@
         <div class="spinner"></div>
         <p>Loading...</p>
     </div>
+    
+    <div id="pdfRetryScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center;">
+        <h2>PDF Generation Error</h2>
+        <p>The PDF library couldn't be initialized properly.</p>
+        <div style="margin: 20px 0;">
+            <button id="retryPdfButton" class="btn" style="background-color: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Retry PDF Generation</button>
+            <button id="closePdfRetryScreen" class="btn" style="background-color: #f44336; color: white; border: none; padding: 10px 20px; border-radius: 4px; margin-left: 10px; cursor: pointer;">Close</button>
+        </div>
+    </div>
 
     <!-- PDF Export Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script>
         // Make jsPDF available globally
-        window.addEventListener('DOMContentLoaded', function() {
+        window.jsPDFReady = false;
+        window.jsPDFRetries = 0;
+        
+        function initializeJsPDF() {
             try {
                 // Make jsPDF available globally in different ways for maximum compatibility
                 if (window.jspdf && window.jspdf.jsPDF) {
                     window.jsPDF = window.jspdf.jsPDF;
                     console.log('jsPDF initialized from jspdf namespace');
+                    window.jsPDFReady = true;
                 } else if (typeof jsPDF === 'function') {
                     window.jsPDF = jsPDF;
                     console.log('jsPDF already available globally');
+                    window.jsPDFReady = true;
                 } else {
-                    console.error('Could not find jsPDF. PDF export may not work.');
+                    // If jsPDF is not available yet, retry a few times
+                    if (window.jsPDFRetries < 5) {
+                        window.jsPDFRetries++;
+                        console.log(`Retrying jsPDF initialization (${window.jsPDFRetries}/5)...`);
+                        setTimeout(initializeJsPDF, 500);
+                    } else {
+                        console.error('Could not find jsPDF after multiple attempts. PDF export may not work.');
+                    }
                 }
             } catch (e) {
                 console.error('Error initializing jsPDF:', e);
+                if (window.jsPDFRetries < 5) {
+                    window.jsPDFRetries++;
+                    console.log(`Retrying after error (${window.jsPDFRetries}/5)...`);
+                    setTimeout(initializeJsPDF, 500);
+                }
             }
+        }
+        
+        // Try to initialize once DOM is loaded
+        window.addEventListener('DOMContentLoaded', initializeJsPDF);
+        
+        // Also try to initialize after everything is loaded (including scripts)
+        window.addEventListener('load', initializeJsPDF);
+        
+        // Add script load event handlers
+        document.querySelectorAll('script[src*="jspdf"]').forEach(script => {
+            script.addEventListener('load', initializeJsPDF);
+        });
+        
+        // Set up retry button
+        document.addEventListener('DOMContentLoaded', function() {
+            const retryScreen = document.getElementById('pdfRetryScreen');
+            const retryButton = document.getElementById('retryPdfButton');
+            const closeButton = document.getElementById('closePdfRetryScreen');
+            
+            window.showPdfRetryScreen = function() {
+                retryScreen.style.display = 'flex';
+            };
+            
+            window.hidePdfRetryScreen = function() {
+                retryScreen.style.display = 'none';
+            };
+            
+            // Retry button handler
+            retryButton.addEventListener('click', function() {
+                // Reset retries counter and try again
+                window.jsPDFRetries = 0;
+                window.jsPDFReady = false;
+                
+                // Force reload the scripts
+                const jspdfScript = document.createElement('script');
+                jspdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                document.head.appendChild(jspdfScript);
+                
+                const autotableScript = document.createElement('script');
+                autotableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js';
+                document.head.appendChild(autotableScript);
+                
+                // Initialize after scripts are loaded
+                jspdfScript.onload = function() {
+                    initializeJsPDF();
+                };
+                
+                // Hide the retry screen
+                hidePdfRetryScreen();
+            });
+            
+            // Close button handler
+            closeButton.addEventListener('click', hidePdfRetryScreen);
         });
     </script>
     

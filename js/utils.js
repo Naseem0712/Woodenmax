@@ -363,6 +363,73 @@ function initScrollableTableIndicators() {
     });
 }
 
+/**
+ * Initialize jsPDF document with error handling
+ * Shows retry screen if initialization fails
+ * @returns {Promise<Object>} jsPDF document object
+ */
+async function initializePDF() {
+    // Check if jsPDF is ready and wait if necessary
+    if (!window.jsPDFReady) {
+        let waitTime = 0;
+        const maxWaitTime = 5000; // 5 seconds max wait
+        const checkInterval = 100; // Check every 100ms
+        
+        while (!window.jsPDFReady && waitTime < maxWaitTime) {
+            await new Promise(resolve => setTimeout(resolve, checkInterval));
+            waitTime += checkInterval;
+            console.log(`Waiting for jsPDF to initialize... (${waitTime}ms)`);
+        }
+        
+        if (!window.jsPDFReady) {
+            console.error('PDF library is not ready');
+            
+            // Show the retry screen if available
+            if (typeof window.showPdfRetryScreen === 'function') {
+                window.showPdfRetryScreen();
+            }
+            
+            throw new Error('PDF library is not ready. Please use the retry button or refresh the page.');
+        }
+    }
+    
+    // Try different approaches to initialize jsPDF
+    let doc;
+    try {
+        // Try window.jsPDF first (our preferred global reference)
+        if (typeof window.jsPDF === 'function') {
+            doc = new window.jsPDF();
+            console.log('jsPDF initialized using window.jsPDF');
+        }
+        // Try to import jsPDF from window.jspdf (newer versions)
+        else if (window.jspdf && typeof window.jspdf.jsPDF === 'function') {
+            const { jsPDF } = window.jspdf;
+            doc = new jsPDF();
+            console.log('jsPDF initialized using window.jspdf.jsPDF');
+        } 
+        // Try global jsPDF constructor (older versions)
+        else if (typeof jsPDF === 'function') {
+            doc = new jsPDF();
+            console.log('jsPDF initialized using global jsPDF constructor');
+        }
+        // No jsPDF found
+        else {
+            throw new Error('PDF library not found');
+        }
+        
+        return doc;
+    } catch (initError) {
+        console.error('Failed to initialize PDF:', initError);
+        
+        // Show the retry screen if available
+        if (typeof window.showPdfRetryScreen === 'function') {
+            window.showPdfRetryScreen();
+        }
+        
+        throw new Error('PDF library initialization failed: ' + initError.message);
+    }
+}
+
 // Export utilities for use in other modules
 window.utils = {
     convertLength,
@@ -383,5 +450,6 @@ window.utils = {
     downloadJSON,
     loadJSON,
     isEmpty,
-    initScrollableTableIndicators
+    initScrollableTableIndicators,
+    initializePDF
 }; 
